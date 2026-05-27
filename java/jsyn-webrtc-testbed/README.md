@@ -1,6 +1,6 @@
 # JSyn WebRTC Testbed
 
-A Docker-published reference implementation that demonstrates how to use the **[jsyn](https://nexus.benashby.com/repository/maven-public/com/benashby/jsyn/)** Java client library to host a live WebRTC audio conference with real-time **VAD** (Voice Activity Detection) and **Smart-Turn Detection** events.
+A Docker-published reference implementation that demonstrates how to use the **[jsyn](https://nexus.benashby.com/repository/maven-public/com/synauson/jsyn/)** Java client library to host a live WebRTC audio conference with real-time **VAD** (Voice Activity Detection) and **Smart-Turn Detection** events.
 
 Two browsers connect at `/room/<id>`, audio flows through synauson, and every inference event for every participant is streamed live to both browsers and rendered in a developer-observability UI.
 
@@ -14,7 +14,7 @@ Two browsers connect at `/room/<id>`, audio flows through synauson, and every in
 docker run --rm \
   --network host \
   -e TESTBED_CONFERENCE_ID=demo \
-  benashby/synauson-webrtc-testbed:latest
+  bashby/synauson-webrtc-testbed:latest
 ```
 
 Then open two browsers:

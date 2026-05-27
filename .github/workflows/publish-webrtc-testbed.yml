@@ -33,7 +33,7 @@ jobs:
         run: |
           SHA=$(git rev-parse --short=7 HEAD)
           TS=$(date -u +%Y%m%d%H%M)
-          BRANCH=${GITHUB_REF_NAME//\//- }
+          BRANCH=${GITHUB_REF_NAME//\//-}
           echo "primary=${IMAGE}:${BRANCH}-${SHA}-${TS}" >> "$GITHUB_OUTPUT"
           echo "latest=${IMAGE}:latest"                  >> "$GITHUB_OUTPUT"
 
