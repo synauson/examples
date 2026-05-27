@@ -1,0 +1,60 @@
+name: publish-webrtc-testbed
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'java/jsyn-webrtc-testbed/**'
+      - '.github/workflows/publish-webrtc-testbed.yml'
+  workflow_dispatch:
+
+env:
+  IMAGE: bashby/synauson-webrtc-testbed
+
+jobs:
+  publish:
+    runs-on: [self-hosted, Linux, X64]
+    steps:
+      - uses: actions/checkout@v4
+
+      # The Dockerfile's native stage compiles synauson-jni from source and the
+      # runtime stage bakes in the ONNX models. Both live in synauson/synauson.
+      # Check it out into _synauson/ so the Docker build context (repo root) can
+      # reference it as _synauson/. _synauson/ is in .gitignore.
+      - name: Checkout synauson/synauson for native build
+        uses: actions/checkout@v4
+        with:
+          repository: synauson/synauson
+          path: _synauson
+          token: ${{ secrets.SYNAUSON_REPO_TOKEN }}
+
+      - name: Compute image tags
+        id: tags
+        run: |
+          SHA=$(git rev-parse --short=7 HEAD)
+          TS=$(date -u +%Y%m%d%H%M)
+          BRANCH=${GITHUB_REF_NAME//\//- }
+          echo "primary=${IMAGE}:${BRANCH}-${SHA}-${TS}" >> "$GITHUB_OUTPUT"
+          echo "latest=${IMAGE}:latest"                  >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: java/jsyn-webrtc-testbed/Dockerfile
+          platforms: linux/amd64
+          push: true
+          tags: |
+            ${{ steps.tags.outputs.primary }}
+            ${{ steps.tags.outputs.latest }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            NEXUS_USER=${{ secrets.NEXUS_USER }}
+            NEXUS_PASSWORD=${{ secrets.NEXUS_PASSWORD }}

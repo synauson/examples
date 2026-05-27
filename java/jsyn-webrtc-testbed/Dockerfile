@@ -2,7 +2,10 @@
 # =============================================================================
 # Synauson WebRTC Testbed — Multi-stage Docker build
 #
-# Build context: repo root (docker build -f examples/jsyn-webrtc-testbed/Dockerfile .)
+# Build context: repo root of synauson/examples, with synauson/synauson checked
+# out into _synauson/ by CI before the build runs.
+#
+#   docker build -f java/jsyn-webrtc-testbed/Dockerfile .
 #
 # Stages:
 #   1. frontend  — Node 22 builds the Vite + React + TS bundle into /work/frontend/dist
@@ -26,9 +29,9 @@ ARG ORT_VERSION=1.24.4
 FROM node:${NODE_VERSION}-bookworm-slim AS frontend
 WORKDIR /work
 # Cache the npm install layer separately so code changes don't re-trigger it.
-COPY examples/jsyn-webrtc-testbed/frontend/package*.json frontend/
+COPY java/jsyn-webrtc-testbed/frontend/package*.json frontend/
 RUN cd frontend && npm ci --no-audit --no-fund
-COPY examples/jsyn-webrtc-testbed/frontend/ frontend/
+COPY java/jsyn-webrtc-testbed/frontend/ frontend/
 # Override outDir so Vite writes to /work/frontend/dist (the Docker build uses
 # the VITE_OUT_DIR env var; local dev uses the default ../src/main/resources/static).
 ENV VITE_OUT_DIR=/work/frontend/dist
@@ -38,18 +41,18 @@ RUN cd frontend && npm run build
 FROM eclipse-temurin:${JDK_VERSION}-jdk AS backend
 WORKDIR /work
 # Cache Gradle dependency resolution by copying build files first.
-COPY examples/jsyn-webrtc-testbed/gradle/ gradle/
-COPY examples/jsyn-webrtc-testbed/gradlew \
-     examples/jsyn-webrtc-testbed/settings.gradle.kts \
-     examples/jsyn-webrtc-testbed/build.gradle.kts \
-     examples/jsyn-webrtc-testbed/gradle.properties ./
+COPY java/jsyn-webrtc-testbed/gradle/ gradle/
+COPY java/jsyn-webrtc-testbed/gradlew \
+     java/jsyn-webrtc-testbed/settings.gradle.kts \
+     java/jsyn-webrtc-testbed/build.gradle.kts \
+     java/jsyn-webrtc-testbed/gradle.properties ./
 RUN chmod +x gradlew
 # Pull Nexus credentials from build args so they're not baked into the layer.
 ARG NEXUS_USER
 ARG NEXUS_PASSWORD
 RUN NEXUS_USER=${NEXUS_USER} NEXUS_PASSWORD=${NEXUS_PASSWORD} \
     ./gradlew --no-daemon -PskipFrontend dependencies > /dev/null 2>&1 || true
-COPY examples/jsyn-webrtc-testbed/src/ src/
+COPY java/jsyn-webrtc-testbed/src/ src/
 # Copy the Vite-built SPA from the frontend stage into Spring Boot's classpath.
 COPY --from=frontend /work/frontend/dist/ src/main/resources/static/
 RUN NEXUS_USER=${NEXUS_USER} NEXUS_PASSWORD=${NEXUS_PASSWORD} \
@@ -60,6 +63,7 @@ RUN NEXUS_USER=${NEXUS_USER} NEXUS_PASSWORD=${NEXUS_PASSWORD} \
 # against glibc 2.41 (matching the runtime stage) instead of the dev machine's
 # glibc 2.43. ORT and GStreamer dev headers are required by synauson-core and
 # synauson-onnx, which synauson-jni pulls in transitively.
+# CI checks out synauson/synauson into _synauson/ before running this build.
 FROM debian:trixie AS native
 ARG RUST_VERSION
 ARG ORT_VERSION
@@ -89,7 +93,8 @@ ENV ORT_DYLIB_PATH=/opt/onnxruntime/lib/libonnxruntime.so.${ORT_VERSION}
 ENV PROTOC=/usr/bin/protoc
 
 WORKDIR /src
-COPY . .
+# CI places the synauson/synauson workspace at _synauson/ in the build context.
+COPY _synauson/ .
 RUN cargo build --release -p synauson-jni
 
 # ---- Stage 4: patcher --------------------------------------------------------
@@ -113,7 +118,7 @@ RUN set -e && \
     unzip -j app.jar "$NATIVES_ENTRY" -d /tmp/patchdir/ && \
     NATIVES_JAR="/tmp/patchdir/$(basename $NATIVES_ENTRY)" && \
     # Find the classpath path where libsynauson_jni.so lives inside the nested JAR
-    # (e.g. com/benashby/jsyn/natives/linux-x86_64/libsynauson_jni.so).
+    # (e.g. com/synauson/jsyn/natives/linux-x86_64/libsynauson_jni.so).
     INNER_PATH=$(unzip -l "$NATIVES_JAR" | grep 'libsynauson_jni\.so$' | awk '{print $4}') && \
     echo "Patching inner JAR entry: $INNER_PATH" && \
     # Stage the replacement .so at the identical relative path so zip replaces the
@@ -154,8 +159,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Bake the ONNX models into a known location. NativeLoader (inside JSyn)
 # extracts libsynauson_jni.so and libonnxruntime.so from the classpath at
 # JVM startup, but the .onnx model FILES still need to live on disk.
-# Build context is the repo root so models/ is reachable here.
-COPY models/ /opt/synauson/models/
+# CI places the synauson/synauson workspace at _synauson/ in the build context.
+COPY _synauson/models/ /opt/synauson/models/
 
 COPY --from=patcher /opt/testbed/app.jar /opt/testbed/app.jar
 
