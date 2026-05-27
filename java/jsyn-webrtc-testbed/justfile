@@ -1,0 +1,82 @@
+# jsyn-webrtc-testbed — local dev and container workflows.
+# Run `just` (or `just --list`) to see all recipes.
+#
+# Prerequisites (on PATH via the project .direnv):
+#   Java 21  — provided by the repo's .envrc
+#   npm 20+  — for the Vite frontend build (inside the container build)
+#   podman   — for building and running the container image
+#   gopass   — for Nexus credentials
+
+image     := "synauson-webrtc-testbed:dev"
+container := "webrtc-testbed"
+models    := justfile_directory() / "../../models"
+repo_root := justfile_directory() / "../.."
+
+# List all available recipes
+default:
+    @just --list
+
+# ===== Container =====
+
+# Build the image — mirrors exactly what CI does, credentials sourced from gopass
+build-image:
+    podman build \
+        --build-arg NEXUS_USER=admin \
+        --build-arg "NEXUS_PASSWORD=$(gopass show -o websites/nexus.benashby.com/admin)" \
+        -f Dockerfile \
+        -t {{image}} \
+        "{{repo_root}}"
+
+# Run the already-built image (foreground; Ctrl+C to stop)
+run conference="testbed":
+    podman rm -f {{container}} 2>/dev/null || true
+    podman run --rm \
+        --name {{container}} \
+        --network host \
+        -e TESTBED_CONFERENCE_ID={{conference}} \
+        {{image}}
+
+# Build image and run in one shot
+up conference="testbed": build-image
+    podman rm -f {{container}} 2>/dev/null || true
+    podman run --rm \
+        --name {{container}} \
+        --network host \
+        -e TESTBED_CONFERENCE_ID={{conference}} \
+        {{image}}
+
+# Tail logs from a detached container
+logs:
+    podman logs -f {{container}}
+
+# Stop a detached container
+stop:
+    podman stop {{container}} 2>/dev/null || true
+
+# Open the testbed in a browser
+open id="alice":
+    xdg-open http://localhost:8080/room/{{id}} 2>/dev/null || \
+        open http://localhost:8080/room/{{id}} 2>/dev/null || true
+
+# ===== Local dev (no container) =====
+
+# Run frontend unit tests (vitest)
+test:
+    cd frontend && npm test
+
+# Run Spring Boot directly on the host — fastest dev loop, no container rebuild needed
+dev conference="testbed":
+    NEXUS_USER=admin \
+        NEXUS_PASSWORD="$(gopass show -o websites/nexus.benashby.com/admin)" \
+        TESTBED_CONFERENCE_ID={{conference}} \
+        TESTBED_MODELS_DIR="{{models}}" \
+        ./gradlew --no-daemon bootRun
+
+# ===== Cleanup =====
+
+# Remove the local image and any leftover build artifacts
+clean:
+    podman rm -f {{container}} 2>/dev/null || true
+    podman rmi {{image}} 2>/dev/null || true
+    ./gradlew --no-daemon clean
+    rm -rf build/container-ctx src/main/resources/static

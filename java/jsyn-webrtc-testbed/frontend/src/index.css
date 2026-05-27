@@ -1,0 +1,19 @@
+@import url('https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html, body, #root {
+  margin: 0;
+  padding: 0;
+  background: #0a0b0d;
+  color: #e7e9ec;
+  font-family: 'Geist', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100%;
+}
+
+/* Hide scrollbars inside the event-stream while keeping scroll behaviour. */
+.event-scroll::-webkit-scrollbar { display: none; }
+.event-scroll { scrollbar-width: none; }

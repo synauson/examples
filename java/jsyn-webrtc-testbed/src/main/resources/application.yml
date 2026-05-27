@@ -1,0 +1,29 @@
+# Spring server config.
+server:
+  port: ${TESTBED_SERVER_PORT:8080}
+
+spring:
+  application:
+    name: synauson-webrtc-testbed
+
+# Testbed-specific settings.
+# Each field maps to a record component in TestbedProperties; env vars
+# in the form TESTBED_FOO_BAR resolve to testbed.foo-bar via Spring's
+# relaxed binding.
+testbed:
+  models-dir: ${TESTBED_MODELS_DIR:/opt/synauson/models}
+  conference-id: ${TESTBED_CONFERENCE_ID:testbed}
+  stun-server: ${TESTBED_STUN_SERVER:stun://stun.l.google.com:19302}
+  # VAD defaults match VadConfig.defaults() in JSyn.
+  vad-threshold: ${TESTBED_VAD_THRESHOLD:0.5}
+  vad-min-silence-ms: ${TESTBED_VAD_MIN_SILENCE_MS:300}
+  vad-min-speech-ms: ${TESTBED_VAD_MIN_SPEECH_MS:250}
+  # SmartTurn defaults match SmartTurnConfig.defaults() in JSyn.
+  smart-turn-buffered-samples: ${TESTBED_SMART_TURN_BUFFERED_SAMPLES:160}
+  smart-turn-confidence-threshold: ${TESTBED_SMART_TURN_CONFIDENCE_THRESHOLD:0.5}
+
+logging:
+  level:
+    com.synauson: DEBUG
+  pattern:
+    console: "%d{HH:mm:ss.SSS} %-5level %logger{36} : %msg%n"
