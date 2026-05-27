@@ -30,10 +30,8 @@ repositories {
 }
 
 // JSyn coordinates. Bump these to whichever snapshot is current in Nexus
-// when re-running the build — the version strings encode branch, sha, and
-// timestamp so they sort lexicographically.
-val jsynVersion = "main-c15ac7f-202605262244-SNAPSHOT"
-val jsynNativesLinuxVersion = "main-c15ac7f-202605262244-SNAPSHOT"
+val jsynVersion = "0.1.0-SNAPSHOT"
+val jsynNativesLinuxVersion = "0.1.0-SNAPSHOT"
 
 dependencies {
     implementation("org.springframework.boot:spring-boot-starter-web")
