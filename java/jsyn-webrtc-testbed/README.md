@@ -91,25 +91,6 @@ Refreshing the browser or opening `/room/alice` in a second tab evicts the prior
 
 ---
 
-## Publishing the image yourself
-
-The image is published automatically on every push to `main` that changes `examples/jsyn-webrtc-testbed/**` via `.github/workflows/publish-webrtc-testbed.yml`.
-
-**One-time GitHub repository secrets/vars required:**
-
-| Kind | Name | Purpose |
-|---|---|---|
-| secret | `DOCKERHUB_USERNAME` | Docker Hub user (`benashby`) |
-| secret | `DOCKERHUB_TOKEN` | Docker Hub PAT with write access |
-| secret | `NEXUS_USER` | Nexus read access for JSyn artifacts |
-| secret | `NEXUS_PASSWORD` | Nexus password/token |
-| var | `SILERO_VAD_URL` | HTTPS URL to `silero_vad.onnx` |
-| var | `SMART_TURN_URL` | HTTPS URL to `smart_turn.onnx` |
-
-Tag format: `main-<sha7>-<utcYYYYMMDDHHMM>` + `:latest` on every main build.
-
----
-
 ## Troubleshooting
 
 **ICE fails / audio doesn't flow**
