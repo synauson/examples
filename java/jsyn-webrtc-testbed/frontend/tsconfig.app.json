@@ -16,6 +16,7 @@
     "jsx": "react-jsx",
 
     /* Linting */
+    "types": ["vitest/globals"],
     "strict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
