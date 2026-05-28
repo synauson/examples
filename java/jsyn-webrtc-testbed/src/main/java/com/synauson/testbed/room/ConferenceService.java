@@ -8,6 +8,7 @@ import com.synauson.jsyn.spec.ConnectionMatrix;
 import com.synauson.jsyn.spec.VadConfig;
 import com.synauson.jsyn.spec.SmartTurnConfig;
 import com.synauson.jsyn.spec.WebRtcParticipantSpec;
+import org.springframework.web.socket.handler.ConcurrentWebSocketSessionDecorator;
 import com.synauson.testbed.config.TestbedProperties;
 import com.synauson.testbed.signaling.envelope.ServerMessage;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -179,7 +180,12 @@ public class ConferenceService {
             Subscription iceSub  = conference.streamWebRtcIceCandidates(pid,
                 ev -> events.dispatchIce(pid, epoch, sessions, ev));
 
-            var session = new ParticipantSession(pid, epoch, ws, handle,
+            // Wrap the raw WebSocketSession in a thread-safe decorator so
+            // VAD and SmartTurn events dispatched from separate Tokio threads
+            // don't race on sendMessage (Spring's StandardWebSocketSession is
+            // not thread-safe; concurrent sends throw TEXT_PARTIAL_WRITING).
+            var safeWs = new ConcurrentWebSocketSessionDecorator(ws, 5_000, 64 * 1024);
+            var session = new ParticipantSession(pid, epoch, safeWs, handle,
                 vadSub, turnSub, iceSub);
             sessions.put(pid, session);
 

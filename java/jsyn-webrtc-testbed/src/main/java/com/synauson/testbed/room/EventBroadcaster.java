@@ -55,7 +55,12 @@ public class EventBroadcaster {
      */
     public void dispatchVad(String pid, long epoch,
                             Map<String, ParticipantSession> sessions, VadEvent event) {
-        if (isStale(pid, epoch, sessions)) return;
+        log.debug("dispatchVad: pid={} epoch={} eventType={}", pid, epoch,
+            event == null ? "null" : event.getClass().getSimpleName());
+        if (isStale(pid, epoch, sessions)) {
+            log.debug("dispatchVad: stale event dropped for pid={}", pid);
+            return;
+        }
         ServerMessage.VadEvent envelope = switch (event) {
             case VadEvent.SpeechStart s ->
                 new ServerMessage.VadEvent(pid, ServerMessage.VadKind.SPEECH_START,
@@ -63,17 +68,31 @@ public class EventBroadcaster {
             case VadEvent.SpeechEnd e ->
                 new ServerMessage.VadEvent(pid, ServerMessage.VadKind.SPEECH_END,
                     LocalTime.now().format(T_FMT), null, e.durationMs);
-            default -> null; // VadEvent is abstract (not sealed); shouldn't occur
+            default -> null;
         };
-        if (envelope == null) return;
+        if (envelope == null) {
+            log.warn("dispatchVad: unexpected VadEvent subtype {} for pid={}", event.getClass(), pid);
+            return;
+        }
+        log.debug("dispatchVad: broadcasting {} to {} sessions", envelope.kind(), sessions.size());
         broadcast(sessions, envelope);
     }
 
     /** Smart-Turn event fan-out. */
     public void dispatchTurn(String pid, long epoch,
                               Map<String, ParticipantSession> sessions, SmartTurnEvent event) {
-        if (isStale(pid, epoch, sessions)) return;
-        if (!(event instanceof SmartTurnEvent.TurnResult r)) return;
+        log.debug("dispatchTurn: pid={} epoch={} eventType={}", pid, epoch,
+            event == null ? "null" : event.getClass().getSimpleName());
+        if (isStale(pid, epoch, sessions)) {
+            log.debug("dispatchTurn: stale event dropped for pid={}", pid);
+            return;
+        }
+        if (!(event instanceof SmartTurnEvent.TurnResult r)) {
+            log.warn("dispatchTurn: unexpected SmartTurnEvent subtype {} for pid={}", event.getClass(), pid);
+            return;
+        }
+        log.debug("dispatchTurn: probability={} turnComplete={} broadcasting to {} sessions",
+            r.probability, r.turnComplete, sessions.size());
         var envelope = new ServerMessage.TurnEvent(
             pid, LocalTime.now().format(T_FMT), r.probability, r.turnComplete);
         broadcast(sessions, envelope);
@@ -122,11 +141,16 @@ public class EventBroadcaster {
     }
 
     private void sendQuietly(ParticipantSession session, TextMessage frame) {
-        if (!session.socket().isOpen()) return;
+        if (!session.socket().isOpen()) {
+            log.debug("sendQuietly: socket closed for pid={}", session.participantId());
+            return;
+        }
         try {
             session.socket().sendMessage(frame);
+            log.debug("sendQuietly: sent {} bytes to pid={}",
+                frame.getPayloadLength(), session.participantId());
         } catch (Exception ex) {
-            log.debug("send to {} failed (ignored): {}",
+            log.warn("sendQuietly: send to pid={} FAILED — {} (concurrent send race?)",
                 session.participantId(), ex.getMessage());
         }
     }
