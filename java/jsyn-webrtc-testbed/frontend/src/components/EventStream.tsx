@@ -97,9 +97,9 @@ function EventRow({ event, selfId, dt }: { event: EventRecord; selfId: string; d
       {isTurn && bucket ? (
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
           <span style={{ color: '#e7e9ec', minWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            {event.turnComplete || event.probability >= 0.85
+            {event.probability >= 0.65
               ? 'done_talking'
-              : event.probability >= 0.5
+              : event.probability >= 0.20
               ? 'likely_done_talking'
               : 'not_done_talking'}
           </span>
@@ -229,7 +229,7 @@ export function EventStream({ events, selfId, rate, counts, solo, rttMs, callSta
       {/* Legend row */}
       <div style={{ padding: '12px 28px', borderBottom: '1px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', gap: 18, fontSize: 10.5, color: '#60656d', letterSpacing: 0.4, flexShrink: 0 }} className="font-mono">
         <span style={{ color: '#3f444b' }}>TURN PROB</span>
-        {([{ c: '#FF6B8A', l: '< 0.50 not done' }, { c: '#FFB547', l: '0.50 – 0.85 likely' }, { c: '#3DDC97', l: '≥ 0.85 done' }] as const).map(({ c, l }) => (
+        {([{ c: '#FF6B8A', l: '< 0.20 not done' }, { c: '#FFB547', l: '0.20 – 0.65 likely' }, { c: '#3DDC97', l: '≥ 0.65 done' }] as const).map(({ c, l }) => (
           <span key={l} style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
             <span style={{ width: 6, height: 6, borderRadius: 1.5, background: c, flexShrink: 0 }} />
             {l}
