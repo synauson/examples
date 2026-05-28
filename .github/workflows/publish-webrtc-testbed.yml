@@ -28,6 +28,30 @@ jobs:
           path: _synauson
           token: ${{ secrets.SYNAUSON_REPO_TOKEN }}
 
+      - name: Wait for jsyn-natives-linux in Nexus
+        env:
+          NEXUS_USER: ${{ secrets.NEXUS_USER }}
+          NEXUS_PASSWORD: ${{ secrets.NEXUS_PASSWORD }}
+        run: |
+          # Extract the jsyn-natives-linux version from build.gradle.kts
+          VERSION=$(grep 'jsynNativesLinuxVersion' java/jsyn-webrtc-testbed/build.gradle.kts \
+            | head -1 | grep -oP '"[^"]+"' | tr -d '"')
+          echo "Waiting for com.synauson:jsyn-natives-linux:${VERSION} in Nexus..."
+          NEXUS_URL="https://nexus.benashby.com/service/rest/v1/search"
+          for i in $(seq 1 20); do
+            COUNT=$(curl -sf -u "${NEXUS_USER}:${NEXUS_PASSWORD}" \
+              "${NEXUS_URL}?group=com.synauson&name=jsyn-natives-linux&version=${VERSION}" \
+              | python3 -c "import json,sys; print(len(json.load(sys.stdin).get('items',[])))" 2>/dev/null || echo 0)
+            if [ "$COUNT" -gt "0" ]; then
+              echo "Found com.synauson:jsyn-natives-linux:${VERSION} in Nexus."
+              exit 0
+            fi
+            echo "Attempt $i/20: not yet available, waiting 30s..."
+            sleep 30
+          done
+          echo "::error::com.synauson:jsyn-natives-linux:${VERSION} not found in Nexus after 10 minutes"
+          exit 1
+
       - name: Compute image tags
         id: tags
         run: |
