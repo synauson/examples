@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "com.synauson"
-version = "0.1.0-SNAPSHOT"
+version = "1.0.0-SNAPSHOT"
 
 java {
     toolchain {
@@ -30,8 +30,8 @@ repositories {
 }
 
 // JSyn coordinates. Bump these to whichever snapshot is current in Nexus
-val jsynVersion = "0.1.0-SNAPSHOT"
-val jsynNativesLinuxVersion = "0.1.0-SNAPSHOT"
+val jsynVersion = "1.0.0-SNAPSHOT"
+val jsynNativesLinuxVersion = "1.0.0-SNAPSHOT"
 
 dependencies {
     implementation("org.springframework.boot:spring-boot-starter-web")
