@@ -104,12 +104,17 @@ export function CallScreen({
             <Dot color={ACCENT} size={5} pulse />
             DEBUG
           </div>
-          {/* SOLO chip — only when no remote participant */}
-          {solo && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '3px 8px', borderRadius: 5, background: hexA(SELF_COLOR, 0.1), border: `1px solid ${hexA(SELF_COLOR, 0.25)}`, fontSize: 11, color: SELF_COLOR, letterSpacing: 0.5 }} className="font-mono">
+          {/* SOLO chip — slides in/out so the top bar reshuffles smoothly when a remote joins. */}
+          <div style={{
+            display: 'inline-flex', alignItems: 'center', overflow: 'hidden',
+            maxWidth: solo ? 200 : 0,
+            opacity: solo ? 1 : 0,
+            transition: 'max-width 320ms cubic-bezier(0.2, 0.8, 0.2, 1), opacity 220ms ease',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '3px 8px', borderRadius: 5, background: hexA(SELF_COLOR, 0.1), border: `1px solid ${hexA(SELF_COLOR, 0.25)}`, fontSize: 11, color: SELF_COLOR, letterSpacing: 0.5, whiteSpace: 'nowrap' }} className="font-mono">
               SOLO · 1 PARTICIPANT
             </div>
-          )}
+          </div>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 18, fontSize: 12, color: '#9aa0a6' }} className="font-mono">
@@ -141,19 +146,30 @@ export function CallScreen({
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10, flexShrink: 0 }}>
             <SpeakerTile participant={selfParticipant} status={selfStatus} levels={localMeter?.bars} />
             {remoteParticipant && (
-              <SpeakerTile participant={remoteParticipant} status={remoteStatus} levels={remoteMeter?.bars} />
+              // key on participant id so the animation re-fires for each new peer
+              <div key={remoteParticipant.id} className="animate-tile-in">
+                <SpeakerTile participant={remoteParticipant} status={remoteStatus} levels={remoteMeter?.bars} />
+              </div>
             )}
           </div>
 
-          {/* SoloPeerCard — only in solo mode */}
-          {solo && (
+          {/* SoloPeerCard — always mounted, collapses via max-height when a remote joins.
+              Always-rendered + max-height keeps both directions of the transition smooth
+              (collapse on join, expand if the peer ever leaves). */}
+          <div style={{
+            overflow: 'hidden',
+            maxHeight: solo ? 240 : 0,
+            opacity: solo ? 1 : 0,
+            transition: 'max-height 360ms cubic-bezier(0.2, 0.8, 0.2, 1), opacity 240ms ease',
+            flexShrink: 0,
+          }}>
             <SoloPeerCard
               iceConnectionState={connectionStats.iceConnectionState}
-              remoteCount={0}
+              remoteCount={remoteParticipant ? 1 : 0}
               inboundTracks={connectionStats.inboundTracks}
               outboundTracks={connectionStats.outboundTracks}
             />
-          )}
+          </div>
 
           {/* Spacer — pushes control dock to the bottom */}
           <div style={{ flex: 1 }} />

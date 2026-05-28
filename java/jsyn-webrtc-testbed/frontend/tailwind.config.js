@@ -42,9 +42,14 @@ export default {
           '70%':  { boxShadow: '0 0 0 6px transparent', opacity: '0.85' },
           '100%': { boxShadow: '0 0 0 0 transparent', opacity: '1' },
         },
+        'tile-in': {
+          '0%':   { opacity: '0', transform: 'translateY(-8px) scale(0.985)' },
+          '100%': { opacity: '1', transform: 'translateY(0) scale(1)' },
+        },
       },
       animation: {
         'live-pulse': 'pulse 1.6s ease-out infinite',
+        'tile-in':    'tile-in 320ms cubic-bezier(0.2, 0.8, 0.2, 1) both',
       },
     },
   },

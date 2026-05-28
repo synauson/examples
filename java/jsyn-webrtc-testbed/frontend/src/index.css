@@ -11,7 +11,12 @@ html, body, #root {
   color: #e7e9ec;
   font-family: 'Geist', system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
-  min-height: 100%;
+  height: 100%;
+}
+
+body {
+  /* Lock the document — every scroll happens inside a designated pane (event stream, etc). */
+  overflow: hidden;
 }
 
 /* Hide scrollbars inside the event-stream while keeping scroll behaviour. */
