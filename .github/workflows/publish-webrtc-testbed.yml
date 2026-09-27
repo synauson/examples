@@ -23,24 +23,13 @@ jobs:
       # runtime stage bakes in the ONNX models. Both live in synauson/synauson.
       # Check it out into _synauson/ so the Docker build context (repo root) can
       # reference it as _synauson/. _synauson/ is in .gitignore.
-      # synauson/synauson is private: synauson[bot] mints a short-lived token that
-      # can only read it.
-      - name: Mint a read-only token for synauson/synauson
-        id: synauson-token
-        uses: actions/create-github-app-token@v2
-        with:
-          app-id: ${{ vars.SYNAUSON_APP_ID }}
-          private-key: ${{ secrets.SYNAUSON_APP_PRIVATE_KEY }}
-          owner: synauson
-          repositories: synauson
-          permission-contents: read
-
       - name: Checkout synauson/synauson for native build
         uses: actions/checkout@v4
         with:
           repository: synauson/synauson
           path: _synauson
-          token: ${{ steps.synauson-token.outputs.token }}
+          # synauson/synauson is private; this deploy key can only read it.
+          ssh-key: ${{ secrets.SYNAUSON_DEPLOY_KEY }}
 
       - name: Wait for jsyn-natives-linux to be published
         run: |
