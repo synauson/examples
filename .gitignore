@@ -1,0 +1,11 @@
+# Rust workspace cloned by CI for native Docker build stage
+_synauson/
+
+# direnv environment cache
+.direnv/
+
+# Eclipse/Java IDE artifacts
+.classpath
+.project
+.settings/
+bin/

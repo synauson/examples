@@ -1,0 +1,8 @@
+.gradle/
+build/
+.idea/
+*.iml
+out/
+
+# Don't commit gradle.properties if it contains credentials
+# (this example includes them for demonstration purposes only)
