@@ -13,6 +13,7 @@ Each example is a self-contained, runnable project — not a code snippet. Clone
 | Example | Description |
 |---------|-------------|
 | [jsyn-webrtc-testbed](java/jsyn-webrtc-testbed) | Docker-published Spring Boot + React app. Two browsers join a room, audio flows through synauson, and every VAD and Smart Turn Detection inference event streams live to the UI. Reference implementation for WebRTC conferencing with real-time event observability. |
+| [jsyn-licensing](java/jsyn-licensing) | Self-checking tour of Synauson licensing: license keys and files, capabilities, air-gapped hosts, usage limits and what to do when they're reached. Runs in CI against a real free-tier license. |
 | [jsyn-windows-quickstart](java/jsyn-windows-quickstart) | Minimal Gradle project demonstrating jsyn on Windows — GStreamer setup, Maven dependencies, and three working examples: file playback, native audio I/O, and VAD detection. |
 
 More examples coming as synauson adds SIP, additional language adapters, and extended conference

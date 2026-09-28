@@ -1,10 +1,9 @@
 # jsyn-webrtc-testbed — local dev and container workflows.
 # Run `just` (or `just --list`) to see all recipes.
 #
-# Prerequisites (on PATH via the project .direnv):
-#   Java 21  — provided by the repo's .envrc
-#   npm 20+  — for the Vite frontend build (inside the container build)
-#   podman   — for building and running the container image
+# Prerequisites:
+#   podman   — for building and running the container image (container recipes)
+#   Java 21, Node 22 and GStreamer 1.26 — only for the host recipes (test, dev)
 #   SYNAUSON_LICENSE_KEY in the environment — a Synauson license key
 
 image     := "synauson-webrtc-testbed:dev"
