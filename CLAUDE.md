@@ -1,9 +1,8 @@
 # CLAUDE.md
 
 Reference applications for [jsyn](https://github.com/synauson/jsyn), the Java library that
-runs the Synauson media engine in-process. **This repository is public.** Everything in it
-is customer-facing documentation that happens to compile, so write for someone copying it
-into their own application.
+runs the Synauson media engine in-process. This repository is public, and its code is read
+as documentation by developers copying it into their own applications. Write for them.
 
 ## Layout
 
@@ -13,7 +12,7 @@ README. There is no root build: `cd` into the example first.
 | Example | What | Runs on |
 |---|---|---|
 | `java/jsyn-webrtc-testbed` | Spring Boot + React WebRTC conference with live VAD / Smart Turn events; published as a container image. See its own `CLAUDE.md` | Linux (container) |
-| `java/jsyn-licensing` | Self-checking tour of licensing: keys, license files, capabilities, air-gapped hosts, limits | Linux, Windows, container |
+| `java/jsyn-licensing` | How to set up licensing, with a tour that checks it against a live runtime | Linux, Windows, container |
 | `java/jsyn-windows-quickstart` | Minimal Gradle project: file playback, native audio I/O, VAD | Windows |
 
 ## Commands
@@ -31,30 +30,30 @@ cd java/jsyn-licensing && just tour-container  # or: ./gradlew run --args="limit
 .\gradlew.bat run; .\gradlew.bat runVadExample --args="C:\path\speech.wav"
 ```
 
-Host runs need GStreamer **1.26** (not 1.28: its webrtcbin pad API breaks the testbed) and
+Host runs need GStreamer 1.26 (1.28 changed the webrtcbin pad API, which breaks the testbed) and
 the Java version of the example: 21 for the testbed and the tour, 11 for the quickstart.
 When the host lacks them, use the container recipes.
 
 ## Rules
 
-- **jsyn version:** examples use the released `com.synauson:jsyn` and the matching
+- Examples use the released `com.synauson:jsyn` and the matching
   `jsyn-natives-*` from `https://maven.synauson.com/releases` (no credentials). Versions are
   pinned in each `build.gradle.kts` (currently `1.4.0`). Bump every example together, and
   keep jsyn and its natives equal.
-- **License keys:** every runtime needs `SYNAUSON_LICENSE_KEY`; there is no keyless mode.
+- Every runtime needs `SYNAUSON_LICENSE_KEY`; there is no keyless mode.
   Never commit a key or a `license.lic` (it embeds the key). jsyn behaviour around licensing
   is documented and tested in `java/jsyn-licensing`; check it there before explaining it
   anywhere else.
-- **Models:** runtimes download the models their license includes at startup. Code that
+- Runtimes download the models their license includes at startup. Code that
   adds a detector must wait for `JSyn.capabilities().models` to report `ready`, or handle
   `FailedPreconditionException`.
-- **Event subscriptions:** subscribe to a participant's VAD / Smart Turn events *after*
+- Subscribe to a participant's VAD / Smart Turn events *after*
   adding the participant (the participant carries the detector). Tear down in reverse:
   subscriptions, then the participant, then the conference.
-- **Examples are verified, not illustrative.** CI runs each one against the real runtime and
-  a real license. When you change behaviour, change the assertion that proves it too.
-- **Public content:** no personal names, emails, internal hostnames or local paths in files
-  or commit messages.
+- CI runs every example against the real runtime and a real license. When you change
+  behaviour, update the assertion that checks it.
+- Keep personal names, emails, internal hostnames and local paths out of files and commit
+  messages.
 
 ## CI and commits
 

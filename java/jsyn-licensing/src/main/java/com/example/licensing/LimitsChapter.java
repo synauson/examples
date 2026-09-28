@@ -10,7 +10,6 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
 import java.util.List;
-import java.util.function.Supplier;
 
 import static com.example.licensing.CapabilitiesChapter.plain;
 import static com.example.licensing.CapabilitiesChapter.withVad;
@@ -21,9 +20,8 @@ import static com.example.licensing.Tour.refused;
 import static com.example.licensing.Tour.step;
 
 /**
- * Chapter 5: usage limits. Run at the free-tier floor (offline, no license file), so
- * the numbers are the same whatever key runs the tour: 10 conferences, 2 of them
- * with AI.
+ * Chapter 5: usage limits. It runs at the free-tier floor (offline, no license file), so
+ * the numbers are the same for every key: 10 conferences, 2 of them with AI.
  */
 final class LimitsChapter {
 
@@ -31,11 +29,11 @@ final class LimitsChapter {
 
     static void run(Tour tour) throws InterruptedException {
         Tour.chapter("5 · Usage limits",
-                "Limits count concurrent use: conferences, conferences with AI, and streams per "
-                + "capability. They're checked only when something new starts. At the limit (plus "
-                + "the license's overdraft, if it has one) the new thing is refused with "
-                + "LimitExceededException, and nothing already running is touched. This chapter runs "
-                + "at the free-tier floor so its numbers don't depend on your key.");
+                "Limits count what runs at the same time: conferences, conferences with AI, and "
+                + "streams per capability. A limit is checked only when something new starts. Past "
+                + "the limit, plus the license's overdraft if it has one, the new thing fails with "
+                + "LimitExceededException and running calls carry on. This chapter runs at the "
+                + "free-tier floor, so the numbers are the same for every key.");
 
         try (JSyn jsyn = new JSyn(tour.config(tour.freshDir("state/limits")).offline(true).build())) {
             Capabilities caps = jsyn.capabilities();
@@ -60,22 +58,22 @@ final class LimitsChapter {
                 caps = jsyn.capabilities();
                 ok("AI conferences " + CapabilitiesPrinter.usage(caps.aiConferences));
                 ok("health " + LicenseHealth.of(caps, Instant.now()).status()
-                        + ": at a limit, so the next AI conference will be refused");
+                        + ": a limit is fully used, so the next AI conference will be refused");
 
                 step("One more call wants AI");
                 Conference extra = jsyn.startConference("support-call-" + (aiLimit + 1));
                 open.push(extra);
                 ok("the conference itself starts: conferences " + CapabilitiesPrinter.usage(jsyn.capabilities().conferences));
-                LimitExceededException e = expectLimit(() -> extra.addNativeParticipant("agent", withVad()));
+                LimitExceededException e = Tour.expectThrows(LimitExceededException.class, () -> extra.addNativeParticipant("agent", withVad()));
                 refused(e);
                 ok("its first AI stream is refused, since it would make a third AI conference");
 
                 step("Degrade instead of failing the call: join without AI");
                 open.push(extra.addNativeParticipant("agent", plain()));
-                ok("joined without VAD; the call goes ahead, just without AI on it");
-                note("What to do on a refusal is your product's call: join without AI (as here), "
-                        + "queue and retry when capacity frees up, or tell the user. LimitExceededException "
-                        + "is also what your own maxConferences cap throws; see the end of this chapter.");
+                ok("joined without VAD, so the call goes ahead without AI");
+                note("Other reasonable choices are to retry when capacity frees up, or to tell the "
+                        + "user. Your own maxConferences cap throws LimitExceededException too; the end "
+                        + "of this chapter shows how to tell the two apart.");
 
                 step("The calls already running are untouched");
                 caps = jsyn.capabilities();
@@ -99,7 +97,7 @@ final class LimitsChapter {
                     open.push(jsyn.startConference("plain-call-" + i));
                 }
                 ok("conferences " + CapabilitiesPrinter.usage(jsyn.capabilities().conferences));
-                LimitExceededException full = expectLimit(() -> jsyn.startConference("one-too-many"));
+                LimitExceededException full = Tour.expectThrows(LimitExceededException.class, () -> jsyn.startConference("one-too-many"));
                 refused(full);
                 ok("conference " + (conferenceLimit + 1) + " is refused");
             } finally {
@@ -110,39 +108,22 @@ final class LimitsChapter {
                     "ending the conferences releases everything they held");
             ok("all conferences ended: conferences " + CapabilitiesPrinter.usage(caps.conferences)
                     + ", AI conferences " + CapabilitiesPrinter.usage(caps.aiConferences));
-            note("With an overdraft, say 0.25, a limit of 10 admits up to 13 (the ceiling rounds up "
-                    + "in your favour); the ones above 10 are logged at WARN as overage. Today limits "
-                    + "count on each runtime separately (capabilities().limitsScope says 'this instance'); "
-                    + "they will count across all runtimes on a license once Synauson aggregates usage.");
+            note("With an overdraft of 0.25, a limit of 10 admits up to 13 (the ceiling rounds up) "
+                    + "and logs the ones above 10 at WARN as overage. For now each runtime counts its "
+                    + "own usage: capabilities().limitsScope is 'this instance'.");
         }
 
         step("Your own cap is separate: maxConferences(1), on the same license");
         try (JSyn jsyn = new JSyn(tour.config(tour.freshDir("state/limits")).offline(true).maxConferences(1).build());
              Conference first = jsyn.startConference("only-one")) {
-            LimitExceededException e = expectLimit(() -> jsyn.startConference("second"));
+            LimitExceededException e = Tour.expectThrows(LimitExceededException.class, () -> jsyn.startConference("second"));
             refused(e);
             Capabilities caps = jsyn.capabilities();
             expect(caps.conferences.limit != null && caps.conferences.inUse < caps.conferences.limit,
                     "the license still has room, so the refusal came from maxConferences");
-            ok("refused by your cap, although the license has room (conferences "
-                    + CapabilitiesPrinter.usage(caps.conferences) + "). Read the message, or compare "
-                    + "capabilities() with your own caps, to tell them apart.");
-        }
-    }
-
-    static <T> LimitExceededException expectLimit(Supplier<T> call) {
-        try {
-            T started = call.get();
-            if (started instanceof AutoCloseable c) {
-                try {
-                    c.close();
-                } catch (Exception ignored) {
-                    // Only cleaning up after a failed expectation.
-                }
-            }
-            throw new Tour.TourFailure("expected LimitExceededException, but it was admitted");
-        } catch (LimitExceededException e) {
-            return e;
+            ok("refused by your cap while the license still has room (conferences "
+                    + CapabilitiesPrinter.usage(caps.conferences) + "). The message names the limit, "
+                    + "and capabilities() shows only the license's.");
         }
     }
 }

@@ -16,8 +16,8 @@ import static com.example.licensing.Tour.ok;
 import static com.example.licensing.Tour.step;
 
 /**
- * Chapter 2: a normal start. The key is exchanged for a signed license file, which is
- * cached; the report says what the license includes; the licensed models download.
+ * Chapter 2: a normal start. The runtime exchanges the key for a signed license file,
+ * caches it, and downloads the models the license includes.
  */
 final class OnlineChapter {
 
@@ -29,10 +29,9 @@ final class OnlineChapter {
     static void run(Tour tour) throws IOException, InterruptedException {
         Tour.chapter("2 · Online",
                 "At startup the runtime sends the key to license.synauson.com and checks out a "
-                + "license file: a certificate signed by Synauson listing the capabilities the license "
-                + "includes and its usage limits. It verifies the signature, caches the file in the "
-                + "state directory and renews it about once a day. Everything the runtime knows about "
-                + "its license is in JSyn.capabilities().");
+                + "license file, signed by Synauson, that lists the license's capabilities and "
+                + "limits. It caches the file in the state directory and renews it about once a "
+                + "day. JSyn.capabilities() reports what the runtime knows about its license.");
 
         Path state = tour.freshDir("state/online");
 
@@ -56,15 +55,15 @@ final class OnlineChapter {
             if (FileSystems.getDefault().supportedFileAttributeViews().contains("posix")) {
                 String mode = PosixFilePermissions.toString(Files.getPosixFilePermissions(cached));
                 expect(mode.equals("rw-------"), "the cached file is readable by its owner only");
-                ok("mode " + mode + ": the file embeds your license key, so treat it like the key");
+                ok("mode " + mode + ": the file contains your key, so keep it as private as the key");
             }
-            note("Don't commit it or bake it into images. Mount a volume at the state directory "
-                    + "instead, so restarts and short outages reuse it.");
+            note("Keep the state directory on a volume so restarts reuse the file, and keep the "
+                    + "file out of images and version control.");
 
             step("Wait for the models the license includes");
-            note("They download in the background, verified against checksums and signatures "
-                    + "pinned in this jsyn build. A model the license doesn't include reports "
-                    + "not-entitled and is never downloaded.");
+            note("They download in the background and are checked against checksums and "
+                    + "signatures pinned in this jsyn build. A model no licensed capability uses "
+                    + "reports not-entitled and isn't downloaded.");
             caps = Tour.awaitEntitledModels(jsyn, Duration.ofMinutes(5));
             for (Capabilities.ModelInfo m : caps.models) {
                 ok(m.id + " " + m.version + ": " + m.state);
@@ -78,8 +77,8 @@ final class OnlineChapter {
         expect("licensed".equals(license.state) && "cache".equals(license.source),
                 "a restart without the server runs on the cached file");
         ok("still licensed, from the cache, valid offline until " + license.fileExpiry);
-        note("A running runtime behaves the same: if renewals fail, it keeps its file until "
-                + "that expiry (about 30 days after the last renewal), then falls to the free-tier "
-                + "floor, never to nothing. LicenseHealth reports DEGRADED while on the cache.");
+        note("A running runtime whose renewals fail does the same: it keeps its file until that "
+                + "expiry, about 30 days after the last renewal, and then drops to the free-tier "
+                + "floor. LicenseHealth reports DEGRADED while it runs on the cache.");
     }
 }

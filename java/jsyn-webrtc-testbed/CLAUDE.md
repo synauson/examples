@@ -8,12 +8,12 @@ out to every socket. The README covers running it and the architecture.
 
 - `room/ConferenceService.java`: the jsyn orchestration and the most delicate code here.
   It relies on these invariants:
-  - **Recreate-on-rejoin:** the same participant id joining again evicts the old session
+  - The same participant id joining again evicts the old session
     (the old socket gets `REPLACED`).
-  - **Epoch tokens** drop callbacks from superseded sessions.
-  - **Cleanup compares references**, so a late close from an old socket can't remove the
+  - Epoch tokens drop callbacks from superseded sessions.
+  - Cleanup compares references, so a late close from an old socket can't remove the
     current session.
-  - **Teardown order:** event subscriptions first, then participant removal.
+  - Teardown removes the event subscriptions first, then the participant.
 - `config/AiFeatures.java`: waits (up to `TESTBED_MODEL_WAIT_SECONDS`) for the licensed
   models, then enables only the detectors the license includes. The startup line
   `Detectors: VAD on, turn detection on` is asserted by CI (`testbed-image`).
