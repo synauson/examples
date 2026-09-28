@@ -83,23 +83,25 @@ public class VadDetectionExample {
                 AtomicInteger speechStarts = new AtomicInteger();
                 CountDownLatch speechEnded = new CountDownLatch(1);
 
-                try (Subscription vadSub = conference.streamVadEvents(participantId, event -> {
-                    if (event instanceof VadEvent.SpeechStart) {
-                        System.out.println("✓ VAD: speech START (#" + speechStarts.incrementAndGet() + ")");
-                    } else if (event instanceof VadEvent.SpeechEnd) {
-                        VadEvent.SpeechEnd end = (VadEvent.SpeechEnd) event;
-                        System.out.println("✓ VAD: speech END (" + end.durationMs + " ms)");
-                        speechEnded.countDown();
-                    }
-                })) {
+                // The participant carries the VAD detector, so it must exist before
+                // subscribing to its VAD events.
+                System.out.println("Creating native participant with VAD (PCM 16 kHz mono)\n");
+                try (NativeParticipant participant = conference.addNativeParticipant(
+                        participantId,
+                        NativeParticipantSpec.builder()
+                                .format(NativeAudioFormat.PCM_S16LE16K_MONO)
+                                .vad(new VadConfig(0.5f, 300, 250))
+                                .build())) {
 
-                    System.out.println("Creating native participant with VAD (PCM 16 kHz mono)\n");
-                    try (NativeParticipant participant = conference.addNativeParticipant(
-                            participantId,
-                            NativeParticipantSpec.builder()
-                                    .format(NativeAudioFormat.PCM_S16LE16K_MONO)
-                                    .vad(new VadConfig(0.5f, 300, 250))
-                                    .build())) {
+                    try (Subscription vadSub = conference.streamVadEvents(participantId, event -> {
+                        if (event instanceof VadEvent.SpeechStart) {
+                            System.out.println("✓ VAD: speech START (#" + speechStarts.incrementAndGet() + ")");
+                        } else if (event instanceof VadEvent.SpeechEnd) {
+                            VadEvent.SpeechEnd end = (VadEvent.SpeechEnd) event;
+                            System.out.println("✓ VAD: speech END (" + end.durationMs + " ms)");
+                            speechEnded.countDown();
+                        }
+                    })) {
 
                         System.out.println("Streaming the recording, then 1.5 s of silence...");
                         stream(participant, speech);
