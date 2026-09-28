@@ -106,6 +106,16 @@ git --version
 2. Run installer with default options
 3. Reopen PowerShell and verify: `git --version`
 
+### 4. A Synauson license key
+
+jsyn runs under a license key (free-tier keys work). Set it before running the examples:
+
+```powershell
+$env:SYNAUSON_LICENSE_KEY = "your-license-key"
+```
+
+The runtime downloads the AI models your license includes by itself at startup.
+
 ## Getting the Code
 
 Open PowerShell and navigate to where you want the code:
@@ -215,18 +225,20 @@ The quickstart includes three examples that demonstrate different JSyn capabilit
 
 **What it does:** Detects when someone is speaking vs. silence
 
-**⚠️ Requires ONNX models** (not included - see below)
+**Needs** a license that includes `FEATURE_VAD`, and a WAV recording of speech (16 kHz,
+mono, 16-bit PCM). The runtime downloads the VAD model itself.
 
 **Run it:**
 ```powershell
-.\gradlew.bat runVadExample
+.\gradlew.bat runVadExample --args="C:\path\to\speech.wav"
 ```
 
 **Code:** `src\main\java\com\example\jsyn\VadDetectionExample.java`
 
 **Key concepts:**
 - Creating a native participant (for programmatic audio I/O)
-- Writing raw PCM audio bytes
+- Waiting for a licensed model with `jsyn.capabilities()`
+- Streaming raw PCM in 20 ms frames (`write` takes what fits and returns the count)
 - Subscribing to VAD events (speech start/end)
 - Real-time voice activity detection
 
@@ -234,15 +246,6 @@ The quickstart includes three examples that demonstrate different JSyn capabilit
 - Detecting when participants are speaking
 - Implementing push-to-talk features
 - Trimming silence from recordings
-
-**About ONNX models:** The VAD example requires machine learning models. If you don't have them, you'll see:
-
-```
-ERROR: ONNX models not found at: C:\...\models
-Expected: silero_vad.onnx
-```
-
-You can skip this example for now and use the file playback or native I/O examples instead.
 
 ### Example 3: Native Participant Bidirectional I/O
 
@@ -326,10 +329,10 @@ repositories {
 
 dependencies {
     // JSyn API - pure Java
-    implementation("com.synauson:jsyn:main-65a2237-202605252000-SNAPSHOT")
+    implementation("com.synauson:jsyn:1.4.0")
     
     // Windows native libraries (includes synauson_jni.dll + onnxruntime.dll)
-    runtimeOnly("com.synauson:jsyn-natives-windows:main-65a2237-202605252000-SNAPSHOT")
+    runtimeOnly("com.synauson:jsyn-natives-windows:1.4.0")
 }
 
 java {
@@ -350,7 +353,7 @@ public class MyApp {
     public static void main(String[] args) {
         // Configure JSyn
         JSynConfig config = JSynConfig.builder()
-            .modelsDir("C:/path/to/models")  // Can be empty if not using VAD/SmartTurn
+            // The license key is read from SYNAUSON_LICENSE_KEY unless you pass .licenseKey(...)
             .rtpPortMin(40000)                // UDP ports for RTP (future SIP/WebRTC)
             .rtpPortMax(40199)
             .build();
@@ -465,13 +468,17 @@ conference.updatePartyAudioConnections(new ConnectionMatrix(
    Should return `True`
 3. Reinstall both GStreamer packages (runtime + devel) to `C:\gstreamer\`
 
-### "Failed to load ONNX model"
+### "FailedPreconditionException" naming a model
 
-**Problem:** VAD example can't find machine learning models.
+**Problem:** The model hasn't finished downloading. The runtime downloads the models your
+license includes in the background at startup.
 
-**Solution:** This is expected if you don't have ONNX models. Use the file playback or native I/O examples instead, which don't require models.
+**Solution:** Wait for the model with `jsyn.capabilities()`, as `VadDetectionExample` does. If
+it never becomes ready, check the machine can reach `dl.synauson.com`.
 
-If you need VAD/SmartTurn capabilities, ask for the models directory separately.
+### "PermissionDeniedException"
+
+**Problem:** Your license doesn't include the capability (for example `FEATURE_VAD`).
 
 ### Build is slow / keeps re-downloading
 
@@ -506,7 +513,7 @@ Now that you have JSyn working:
 
 This quickstart was tested with:
 
-- **JSyn version:** `main-65a2237-202605252000-SNAPSHOT`
+- **JSyn version:** `1.4.0` (with `jsyn-natives-windows` `1.4.0`)
 - **GStreamer:** 1.26.7 (MSVC x86_64)
 - **ONNX Runtime:** 1.24.4 (embedded in jsyn-natives-windows)
 - **Java:** 11 or later
@@ -522,7 +529,7 @@ This quickstart was tested with:
 **Run examples:**
 ```powershell
 .\gradlew.bat run                    # File playback
-.\gradlew.bat runVadExample          # VAD (requires models)
+.\gradlew.bat runVadExample --args="C:\path\to\speech.wav"   # VAD
 .\gradlew.bat runNativeIOExample     # Bidirectional I/O
 ```
 

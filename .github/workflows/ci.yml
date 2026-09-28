@@ -1,0 +1,198 @@
+name: ci
+
+# Pull requests are disabled on this repository. Every branch push runs CI, and
+# main only moves to a commit whose checks passed (enforced by a ruleset).
+on:
+  push:
+    branches: ['**']
+  workflow_dispatch:
+
+jobs:
+  # -------------------------------------------------------------------------
+  # WebRTC testbed: frontend tests, then the Gradle build. With a license key
+  # the build's tests start the whole application against the real jsyn
+  # runtime: license exchange, model downloads and the conference.
+  # -------------------------------------------------------------------------
+  testbed:
+    runs-on: [self-hosted, Linux, X64, synauson]
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: java/jsyn-webrtc-testbed
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install GStreamer runtime packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libgstreamer1.0-0 \
+            gstreamer1.0-plugins-base \
+            gstreamer1.0-plugins-good \
+            gstreamer1.0-plugins-bad \
+            gstreamer1.0-nice
+
+      - name: Set up Temurin 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Set up Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: java/jsyn-webrtc-testbed/frontend/package-lock.json
+
+      - name: Cache Gradle wrapper + caches
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-testbed-${{ hashFiles('java/jsyn-webrtc-testbed/**/*.gradle*', 'java/jsyn-webrtc-testbed/gradle/wrapper/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-testbed-
+
+      - name: frontend tests
+        working-directory: java/jsyn-webrtc-testbed/frontend
+        run: |
+          npm ci --no-audit --no-fund
+          npm test
+
+      - name: gradle build
+        env:
+          SYNAUSON_LICENSE_KEY: ${{ secrets.SYNAUSON_LICENSE_KEY }}
+          # The CI license includes VAD and turn detection; require both.
+          TESTBED_EXPECT_DETECTORS: "true"
+        run: ./gradlew build --no-daemon --console=plain
+
+  # -------------------------------------------------------------------------
+  # The published image: build it, start it with a license key and wait for
+  # it to report healthy with both detectors on. Nothing is pushed here.
+  # -------------------------------------------------------------------------
+  testbed-image:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: build image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: java/jsyn-webrtc-testbed/Dockerfile
+          platforms: linux/amd64
+          load: true
+          tags: synauson-webrtc-testbed:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: start the image and wait until healthy
+        env:
+          SYNAUSON_LICENSE_KEY: ${{ secrets.SYNAUSON_LICENSE_KEY }}
+        run: |
+          docker run -d --name testbed --network host -e SYNAUSON_LICENSE_KEY synauson-webrtc-testbed:ci
+          for i in $(seq 1 90); do
+            if curl -fs http://127.0.0.1:8080/actuator/health | grep -q UP; then break; fi
+            if [ -z "$(docker ps -q --filter name=testbed)" ]; then break; fi
+            sleep 2
+          done
+          docker logs testbed
+          curl -fs http://127.0.0.1:8080/actuator/health | grep -q UP
+          docker logs testbed 2>&1 | grep -q "Detectors: VAD on, turn detection on"
+
+  # -------------------------------------------------------------------------
+  # Windows quickstart: build it and run all three examples against the
+  # released jsyn, as a developer following the README would.
+  # -------------------------------------------------------------------------
+  quickstart:
+    runs-on: [self-hosted, Windows, X64, synauson]
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: pwsh
+        working-directory: java/jsyn-windows-quickstart
+    steps:
+      - uses: actions/checkout@v4
+
+      # The VAD example needs a real speech recording; this fixture lives in
+      # synauson/synauson, which is private. The deploy key can only read it.
+      - name: Checkout the speech fixture from synauson
+        uses: actions/checkout@v4
+        with:
+          repository: synauson/synauson
+          ssh-key: ${{ secrets.SYNAUSON_DEPLOY_KEY }}
+          path: synauson-repo
+          sparse-checkout: synauson-server/tests/fixtures/short_speech.wav
+          sparse-checkout-cone-mode: false
+
+      - name: Cache GStreamer installer download
+        id: cache-gst
+        uses: actions/cache@v4
+        with:
+          path: ~/gst-runtime.msi
+          key: win-gst-runtime-1.26.7-v1
+
+      - name: Download GStreamer runtime MSI (cache miss only)
+        if: steps.cache-gst.outputs.cache-hit != 'true'
+        working-directory: ${{ github.workspace }}
+        run: |
+          Invoke-WebRequest `
+            -Uri "https://gstreamer.freedesktop.org/data/pkg/windows/1.26.7/msvc/gstreamer-1.0-msvc-x86_64-1.26.7.msi" `
+            -OutFile (Join-Path $HOME 'gst-runtime.msi')
+
+      - name: Install GStreamer runtime (system-wide, silent)
+        working-directory: ${{ github.workspace }}
+        run: |
+          if (Test-Path 'C:\gstreamer\1.0\msvc_x86_64\bin\gstreamer-1.0-0.dll') {
+            Write-Host "GStreamer already installed, skipping."
+          } else {
+            $msi = Join-Path $HOME 'gst-runtime.msi'
+            $proc = Start-Process msiexec.exe -Wait -PassThru -ArgumentList @(
+              '/i', $msi, '/quiet', '/norestart', 'ADDLOCAL=ALL', 'INSTALLDIR=C:\gstreamer\')
+            if ($proc.ExitCode -ne 0) { throw "msiexec failed with exit code $($proc.ExitCode)" }
+          }
+          "C:\gstreamer\1.0\msvc_x86_64\bin" | Out-File -FilePath $env:GITHUB_PATH -Append -Encoding utf8
+
+      # The first gst_init() for a user scans every plugin and caches the result;
+      # do it here so the first example doesn't spend its time budget on it.
+      - name: Build GStreamer plugin registry
+        working-directory: ${{ github.workspace }}
+        run: |
+          gst-inspect-1.0.exe coreelements | Out-Null
+          if ($LASTEXITCODE -ne 0) { throw "gst-inspect-1.0 failed: $LASTEXITCODE" }
+
+      - name: Set up Temurin 11
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '11'
+
+      - name: Cache Gradle wrapper + caches
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-quickstart-${{ hashFiles('java/jsyn-windows-quickstart/**/*.gradle*', 'java/jsyn-windows-quickstart/gradle/wrapper/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-quickstart-
+
+      - name: build
+        run: ./gradlew.bat build --no-daemon --console=plain
+
+      - name: run the examples
+        env:
+          SYNAUSON_LICENSE_KEY: ${{ secrets.SYNAUSON_LICENSE_KEY }}
+        run: |
+          ./gradlew.bat run --no-daemon --console=plain
+          if ($LASTEXITCODE -ne 0) { throw "FilePlaybackExample failed" }
+          ./gradlew.bat runNativeIOExample --no-daemon --console=plain
+          if ($LASTEXITCODE -ne 0) { throw "NativeParticipantIOExample failed" }
+          $wav = Join-Path $env:GITHUB_WORKSPACE 'synauson-repo\synauson-server\tests\fixtures\short_speech.wav'
+          ./gradlew.bat runVadExample --no-daemon --console=plain "--args=$wav"
+          if ($LASTEXITCODE -ne 0) { throw "VadDetectionExample failed" }

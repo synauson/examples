@@ -13,8 +13,20 @@ Two browsers connect at `/room/<id>`, audio flows through synauson, and every in
 ```bash
 docker run --rm \
   --network host \
+  -e SYNAUSON_LICENSE_KEY=<your license key> \
+  -v synauson-testbed-models:/var/lib/synauson/models \
+  -v synauson-testbed-state:/var/lib/synauson/state \
   -e TESTBED_CONFERENCE_ID=demo \
   cr.synauson.com/synauson/synauson-webrtc-testbed:latest
+```
+
+The testbed needs a Synauson license key (free-tier keys work). At startup the runtime
+downloads the models your license includes into the models volume and caches the license
+file in the state volume, so restarts reuse both. It attaches only the detectors the license
+includes: VAD, turn detection, or neither. The startup log says which:
+
+```
+License: <your license>. Detectors: VAD on, turn detection on
 ```
 
 Then open two browsers:
@@ -34,11 +46,12 @@ Two-terminal dev loop (hot reload + live JSyn backend):
 
 ```bash
 # Terminal 1 — Spring Boot backend (port 8080)
-cd examples/jsyn-webrtc-testbed
-./gradlew bootRun
+cd java/jsyn-webrtc-testbed
+export SYNAUSON_LICENSE_KEY=<your license key>
+just dev        # bootRun with the model store and license cache under build/synauson
 
 # Terminal 2 — Vite dev server (port 5173, proxies /ws → 8080)
-cd examples/jsyn-webrtc-testbed/frontend
+cd java/jsyn-webrtc-testbed/frontend
 npm run dev
 ```
 
@@ -49,6 +62,9 @@ For Java-only iteration (skip the npm build):
 ```bash
 ./gradlew bootRun -PskipFrontend
 ```
+
+`./gradlew test` runs the unit tests, and with `SYNAUSON_LICENSE_KEY` set (and GStreamer
+installed) also starts the whole application against the real runtime.
 
 ---
 
@@ -75,6 +91,7 @@ Browser /room/<id>                Spring Boot (port 8080)             JSyn / syn
 - Recreate-on-rejoin: if the same participant ID opens again, the prior session is evicted and the new one wins
 - Epoch tokens: stale callbacks from superseded sessions are dropped
 - Reference-equality cleanup: a stale TCP RST can't kill the current session
+- License-aware detectors: `AiFeatures` waits for the licensed models at startup and attaches only the detectors the license includes
 - Single-participant mode: VAD/Turn detection runs with just one browser; `rewireMesh()` produces an empty `ConnectionMatrix` (no audio routing) but the detector subscriptions are live
 
 
@@ -108,3 +125,9 @@ apt-get install libgstreamer1.0-0 gstreamer1.0-plugins-base \
 
 **`Failed to initialise JSyn: GStreamer sanity check failed`**
 - GStreamer 1.26 must be installed on the host. Run `gst-inspect-1.0 --version` to verify.
+
+**Startup fails with "license key" in the error**
+- Set `SYNAUSON_LICENSE_KEY` (or `TESTBED_LICENSE_KEY`). The runtime won't start without a key, or with one the licensing server refuses.
+
+**No VAD or Turn events**
+- Check the startup line `Detectors: VAD …, turn detection …`. A detector is off when the license doesn't include it, or when its model hadn't downloaded within `TESTBED_MODEL_WAIT_SECONDS` (default 120); the `Model …` lines above it say which.

@@ -8,6 +8,8 @@ on:
       - '.github/workflows/publish-webrtc-testbed.yml'
   workflow_dispatch:
 
+# main only moves to commits whose ci checks passed (repository ruleset), so this
+# publishes an image the ci workflow already built, started and health-checked.
 env:
   # Pushed to the registry in REGISTRY_HOST; pulled publicly as
   # cr.synauson.com/synauson/synauson-webrtc-testbed.
@@ -18,18 +20,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      # The Dockerfile's native stage compiles synauson-jni from source and the
-      # runtime stage bakes in the ONNX models. Both live in synauson/synauson.
-      # Check it out into _synauson/ so the Docker build context (repo root) can
-      # reference it as _synauson/. _synauson/ is in .gitignore.
-      - name: Checkout synauson/synauson for native build
-        uses: actions/checkout@v4
-        with:
-          repository: synauson/synauson
-          path: _synauson
-          # synauson/synauson is private; this deploy key can only read it.
-          ssh-key: ${{ secrets.SYNAUSON_DEPLOY_KEY }}
 
       - name: Wait for jsyn-natives-linux to be published
         run: |

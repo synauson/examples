@@ -9,6 +9,7 @@ import com.synauson.jsyn.spec.VadConfig;
 import com.synauson.jsyn.spec.SmartTurnConfig;
 import com.synauson.jsyn.spec.WebRtcParticipantSpec;
 import org.springframework.web.socket.handler.ConcurrentWebSocketSessionDecorator;
+import com.synauson.testbed.config.AiFeatures;
 import com.synauson.testbed.config.TestbedProperties;
 import com.synauson.testbed.signaling.envelope.ServerMessage;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -80,6 +81,7 @@ public class ConferenceService {
 
     private final Conference conference;
     private final TestbedProperties props;
+    private final AiFeatures ai;
     private final RosterBroadcaster roster;
     private final EventBroadcaster events;
     private final ObjectMapper mapper;
@@ -88,11 +90,12 @@ public class ConferenceService {
     private final AtomicLong epochSeq = new AtomicLong();
     private final ReentrantLock lock = new ReentrantLock();
 
-    public ConferenceService(Conference conference, TestbedProperties props,
+    public ConferenceService(Conference conference, TestbedProperties props, AiFeatures ai,
                               RosterBroadcaster roster, EventBroadcaster events,
                               ObjectMapper mapper) {
         this.conference = conference;
         this.props = props;
+        this.ai = ai;
         this.roster = roster;
         this.events = events;
         this.mapper = mapper;
@@ -155,8 +158,9 @@ public class ConferenceService {
                 .sdpOffer(sdp)
                 .stunServer(props.stunServer())
                 .jitterBufferMs(200)
-                .vad(buildVadConfig())
-                .smartTurn(buildSmartTurnConfig())
+                // Only the detectors the license includes and whose models are on disk.
+                .vad(ai.vad() ? buildVadConfig() : null)
+                .smartTurn(ai.turnDetection() ? buildSmartTurnConfig() : null)
                 .build();
 
             // addWebRtcParticipant blocks until webrtcbin processes the offer
@@ -173,9 +177,9 @@ public class ConferenceService {
             // Subscribe BEFORE storing the session — the subscription lambdas
             // capture {@code epoch} as a closure, so any late callback will
             // correctly drop itself if the pid is later replaced.
-            Subscription vadSub  = conference.streamVadEvents(pid,
+            Subscription vadSub  = !ai.vad() ? null : conference.streamVadEvents(pid,
                 ev -> events.dispatchVad(pid, epoch, sessions, ev));
-            Subscription turnSub = conference.streamSmartTurnEvents(pid,
+            Subscription turnSub = !ai.turnDetection() ? null : conference.streamSmartTurnEvents(pid,
                 ev -> events.dispatchTurn(pid, epoch, sessions, ev));
             Subscription iceSub  = conference.streamWebRtcIceCandidates(pid,
                 ev -> events.dispatchIce(pid, epoch, sessions, ev));

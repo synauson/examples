@@ -7,16 +7,19 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  *
  * <p>Bound to the {@code testbed.*} prefix; values come from {@code application.yml}
  * and can be overridden with environment variables (Spring Boot's relaxed binding
- * maps {@code TESTBED_MODELS_DIR} to {@code testbed.models-dir}).
+ * maps {@code TESTBED_MODEL_STORE} to {@code testbed.model-store}).
  *
- * <p>String fields are required; Spring fails-fast if the backing property is
- * unresolvable. Numeric fields use boxed types ({@code Float}, {@code Integer})
- * so they are nullable, but every numeric field carries a sensible default in
- * {@code application.yml} so null values do not occur under normal deployment.
+ * <p>Blank string fields mean "use JSyn's default". Numeric fields use boxed types
+ * ({@code Float}, {@code Integer}) so they are nullable, but every numeric field carries
+ * a sensible default in {@code application.yml} so null values do not occur under
+ * normal deployment.
  *
- * @param modelsDir       Absolute path to the directory containing {@code silero_vad.onnx}
- *                        and {@code smart_turn.onnx}; passed straight to
- *                        {@link com.synauson.jsyn.JSynConfig.Builder#modelsDir(String)}.
+ * @param licenseKey      Synauson license key; blank reads {@code SYNAUSON_LICENSE_KEY}.
+ * @param modelStore      Directory the runtime downloads the licensed ONNX models into;
+ *                        passed to {@link com.synauson.jsyn.JSynConfig.Builder#modelStore(String)}.
+ * @param stateDir        Directory for the cached license file; passed to
+ *                        {@link com.synauson.jsyn.JSynConfig.Builder#stateDir(String)}.
+ * @param modelWaitSeconds How long startup waits for the licensed models to download.
  * @param conferenceId    The single fixed conference ID the testbed creates on boot.
  * @param stunServer      STUN URI for ICE negotiation; default
  *                        {@code stun://stun.l.google.com:19302}. Public STUN is fine
@@ -29,7 +32,10 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  */
 @ConfigurationProperties(prefix = "testbed")
 public record TestbedProperties(
-    String modelsDir,
+    String licenseKey,
+    String modelStore,
+    String stateDir,
+    Integer modelWaitSeconds,
     String conferenceId,
     String stunServer,
     Float vadThreshold,
