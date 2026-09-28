@@ -5,9 +5,9 @@
 #
 # Build context: this directory.
 #
-#   podman build -t jsyn-licensing-tour .
-#   podman run --rm -e SYNAUSON_LICENSE_KEY jsyn-licensing-tour            # every chapter
-#   podman run --rm -e SYNAUSON_LICENSE_KEY jsyn-licensing-tour limits     # some of them
+#   docker build -t jsyn-licensing-tour .
+#   docker run --rm -e SYNAUSON_LICENSE_KEY jsyn-licensing-tour            # every chapter
+#   docker run --rm -e SYNAUSON_LICENSE_KEY jsyn-licensing-tour limits     # some of them
 #
 # The tour writes everything (model store, state directories, license files)
 # under /tour; mount a volume there to keep the downloaded models between runs.

@@ -1,10 +1,10 @@
-# jsyn-webrtc-testbed — local dev and container workflows.
+# jsyn-webrtc-testbed: local dev and container workflows.
 # Run `just` (or `just --list`) to see all recipes.
 #
 # Prerequisites:
-#   podman   — for building and running the container image (container recipes)
-#   Java 21, Node 22 and GStreamer 1.26 — only for the host recipes (test, dev)
-#   SYNAUSON_LICENSE_KEY in the environment — a Synauson license key
+#   Docker: for building and running the container image (container recipes)
+#   Java 21, Node 22 and GStreamer 1.26: only for the host recipes (test, dev)
+#   SYNAUSON_LICENSE_KEY in the environment: a Synauson license key
 
 image     := "synauson-webrtc-testbed:dev"
 container := "webrtc-testbed"
@@ -19,15 +19,15 @@ default:
 
 # Build the image the same way CI does
 build-image:
-    podman build \
+    docker build \
         -f Dockerfile \
         -t {{image}} \
         "{{repo_root}}"
 
 # Run the already-built image (foreground; Ctrl+C to stop)
 run conference="testbed":
-    podman rm -f {{container}} 2>/dev/null || true
-    podman run --rm \
+    docker rm -f {{container}} 2>/dev/null || true
+    docker run --rm \
         --name {{container}} \
         --network host \
         -e SYNAUSON_LICENSE_KEY \
@@ -38,8 +38,8 @@ run conference="testbed":
 
 # Build image and run in one shot
 up conference="testbed": build-image
-    podman rm -f {{container}} 2>/dev/null || true
-    podman run --rm \
+    docker rm -f {{container}} 2>/dev/null || true
+    docker run --rm \
         --name {{container}} \
         --network host \
         -e SYNAUSON_LICENSE_KEY \
@@ -50,11 +50,11 @@ up conference="testbed": build-image
 
 # Tail logs from a detached container
 logs:
-    podman logs -f {{container}}
+    docker logs -f {{container}}
 
 # Stop a detached container
 stop:
-    podman stop {{container}} 2>/dev/null || true
+    docker stop {{container}} 2>/dev/null || true
 
 # Open the testbed in a browser
 open id="alice":
@@ -67,7 +67,7 @@ open id="alice":
 test:
     cd frontend && npm test
 
-# Run Spring Boot directly on the host — fastest dev loop, no container rebuild needed
+# Run Spring Boot directly on the host: the fastest dev loop, with no container rebuild
 dev conference="testbed":
     TESTBED_CONFERENCE_ID={{conference}} \
         TESTBED_MODEL_STORE="{{state}}/models" \
@@ -78,7 +78,7 @@ dev conference="testbed":
 
 # Remove the local image and any leftover build artifacts
 clean:
-    podman rm -f {{container}} 2>/dev/null || true
-    podman rmi {{image}} 2>/dev/null || true
+    docker rm -f {{container}} 2>/dev/null || true
+    docker rmi {{image}} 2>/dev/null || true
     ./gradlew --no-daemon clean
     rm -rf build/container-ctx src/main/resources/static
