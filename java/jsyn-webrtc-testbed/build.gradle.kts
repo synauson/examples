@@ -23,8 +23,8 @@ repositories {
 }
 
 // JSyn coordinates. jsyn and jsyn-natives-linux are released together; keep them equal.
-val jsynVersion = "1.4.0"
-val jsynNativesLinuxVersion = "1.4.0"
+val jsynVersion = "1.5.0"
+val jsynNativesLinuxVersion = "1.5.0"
 
 dependencies {
     implementation("org.springframework.boot:spring-boot-starter-web")

@@ -22,7 +22,7 @@ repositories {
 }
 
 // jsyn and its natives are released together; keep them equal.
-val jsynVersion = "1.4.0"
+val jsynVersion = "1.5.0"
 val nativesArtifact =
     if (System.getProperty("os.name").lowercase().contains("windows")) "jsyn-natives-windows"
     else "jsyn-natives-linux"

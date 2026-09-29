@@ -66,10 +66,10 @@ This project pulls JSyn from the Synauson Maven repository:
 
 ```kotlin
 // Pure Java API
-implementation("com.synauson:jsyn:1.4.0")
+implementation("com.synauson:jsyn:1.5.0")
 
 // Windows native libraries (synauson_jni.dll + onnxruntime.dll)
-runtimeOnly("com.synauson:jsyn-natives-windows:1.4.0")
+runtimeOnly("com.synauson:jsyn-natives-windows:1.5.0")
 ```
 
 The artifacts are published to:
@@ -244,8 +244,8 @@ repositories {
 
 ```kotlin
 dependencies {
-    implementation("com.synauson:jsyn:1.4.0")
-    runtimeOnly("com.synauson:jsyn-natives-windows:1.4.0")
+    implementation("com.synauson:jsyn:1.5.0")
+    runtimeOnly("com.synauson:jsyn-natives-windows:1.5.0")
 }
 ```
 
@@ -303,7 +303,7 @@ See the JSyn JavaDoc for complete API documentation:
 
 ## Version Information
 
-- **JSyn version**: `1.4.0` (with `jsyn-natives-windows` `1.4.0`)
+- **JSyn version**: `1.5.0` (with `jsyn-natives-windows` `1.5.0`)
 - **GStreamer**: 1.26.7 (MSVC x86_64)
 - **ONNX Runtime**: 1.24.4 (embedded in jsyn-natives-windows)
 - **Java**: 11 or later
