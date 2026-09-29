@@ -21,8 +21,10 @@ repositories {
     }
 }
 
-// jsyn and its natives are released together; keep them equal.
+// jsyn and its natives are versioned separately: an engine-only fix is a
+// natives release with no new jsyn.
 val jsynVersion = "1.5.0"
+val jsynNativesVersion = "1.5.1"
 val nativesArtifact =
     if (System.getProperty("os.name").lowercase().contains("windows")) "jsyn-natives-windows"
     else "jsyn-natives-linux"
@@ -30,7 +32,7 @@ val nativesArtifact =
 dependencies {
     implementation("com.synauson:jsyn:$jsynVersion")
     // libsynauson_jni + onnxruntime for this OS; jsyn extracts them at startup.
-    runtimeOnly("com.synauson:$nativesArtifact:$jsynVersion")
+    runtimeOnly("com.synauson:$nativesArtifact:$jsynNativesVersion")
 }
 
 application {
