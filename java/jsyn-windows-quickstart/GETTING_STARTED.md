@@ -1,171 +1,127 @@
-# Getting Started with JSyn on Windows
+# Getting started with jsyn on Windows
 
-This guide walks you through everything you need to set up and run JSyn (Synauson Java Client) on Windows. Follow these steps exactly and you'll have working audio processing in about 15 minutes.
+This guide takes a Windows machine with nothing installed to all three quickstart programs
+running. [README.md](README.md) is the short overview of what the programs show and how to use
+jsyn in your own project; the [jsyn README](https://github.com/synauson/jsyn) covers the SDK.
 
-## What is JSyn?
-
-JSyn is a Java library that lets you:
-- Create multi-party audio conferences
-- Play audio files into conferences
-- Record conference audio
-- Detect voice activity (when someone is speaking)
-- Send and receive raw audio bytes for custom processing
-- All powered by GStreamer + ONNX machine learning under the hood
+The steps match what this repository's CI does on its Windows runner before running the
+programs.
 
 ## Prerequisites
 
-You need three things installed on your Windows machine:
+### 1. Java 11 or later
 
-### 1. Java Development Kit (JDK) 11 or later
-
-**Check if you have it:**
 ```powershell
 java -version
 ```
 
-If you see `java version "11"` or higher, you're good. Skip to step 2.
+If that prints version 11 or higher, go to step 2. Otherwise:
 
-**If you need to install Java:**
-1. Download **Eclipse Temurin JDK 11** (LTS version): https://adoptium.net/temurin/releases/?os=windows&arch=x64&package=jdk&version=11
-2. Download the `.msi` installer for Windows x64
-3. Run the installer - use all default options
-4. Open a **new** PowerShell window and verify: `java -version`
+1. Download the Eclipse Temurin JDK 11 `.msi` for Windows x64:
+   https://adoptium.net/temurin/releases/?os=windows&arch=x64&package=jdk&version=11
+2. Run the installer with the default options.
+3. Open a **new** PowerShell window and check `java -version` again.
 
 ### 2. GStreamer 1.26.7 (MSVC x86_64)
 
-GStreamer is the multimedia framework that does all the audio processing. You need the **MSVC version** (not MinGW).
+GStreamer does the media processing. You need the **MSVC** build (not MinGW), and only the
+**runtime** package: jsyn ships its native library prebuilt, so the devel MSI is not needed.
+Use 1.26: GStreamer 1.28 changed webrtcbin's pad API, which breaks WebRTC.
 
-**Download these two files:**
+1. Download the runtime MSI (about 150 MB):
+   https://gstreamer.freedesktop.org/data/pkg/windows/1.26.7/msvc/gstreamer-1.0-msvc-x86_64-1.26.7.msi
+2. Run it, choose the **Complete** installation, and keep the default location, which puts the
+   files under `C:\gstreamer\1.0\msvc_x86_64\`.
 
-**Runtime package** (required to run):
-- URL: https://gstreamer.freedesktop.org/data/pkg/windows/1.26.7/msvc/gstreamer-1.0-msvc-x86_64-1.26.7.msi
-- Size: ~150 MB
+   To install it silently instead (as CI does), from an elevated PowerShell:
 
-**Development package** (required to build):
-- URL: https://gstreamer.freedesktop.org/data/pkg/windows/1.26.7/msvc/gstreamer-1.0-devel-msvc-x86_64-1.26.7.msi  
-- Size: ~20 MB
+   ```powershell
+   msiexec /i gstreamer-1.0-msvc-x86_64-1.26.7.msi /quiet /norestart ADDLOCAL=ALL INSTALLDIR=C:\gstreamer\
+   ```
 
-**Install both packages:**
+3. Set the GStreamer root and add its `bin` directory to `PATH`, machine-wide. Open PowerShell
+   **as Administrator** and run:
 
-1. **Install runtime first:**
-   - Double-click `gstreamer-1.0-msvc-x86_64-1.26.7.msi`
-   - **IMPORTANT:** Install to the default path: `C:\gstreamer\`
-   - Select "Complete" installation (not "Typical")
-   - Click through to finish
+   ```powershell
+   [Environment]::SetEnvironmentVariable(
+       "GSTREAMER_1_0_ROOT_MSVC_X86_64",
+       "C:\gstreamer\1.0\msvc_x86_64",
+       "Machine")
+   $p = [Environment]::GetEnvironmentVariable("Path", "Machine")
+   if (-not $p.Contains("C:\gstreamer\1.0\msvc_x86_64\bin")) {
+       [Environment]::SetEnvironmentVariable(
+           "Path", "$p;C:\gstreamer\1.0\msvc_x86_64\bin", "Machine")
+   }
+   ```
 
-2. **Install development package:**
-   - Double-click `gstreamer-1.0-devel-msvc-x86_64-1.26.7.msi`
-   - Install to the **same** path: `C:\gstreamer\`
-   - Select "Complete" installation
-   - Click through to finish
+4. Close every PowerShell window (and your IDE) so new ones pick up the variables. Sign out
+   and back in if they still don't. Then check the install from a new, non-elevated window:
 
-**Add GStreamer to your PATH:**
+   ```powershell
+   gst-inspect-1.0 --version
+   ```
 
-Open PowerShell **as Administrator** and run:
+   It should report `GStreamer 1.26.7`. If the command isn't found, check that
+   `Test-Path C:\gstreamer\1.0\msvc_x86_64\bin\gst-inspect-1.0.exe` returns `True` and that
+   the directory is on `PATH`.
 
-```powershell
-[Environment]::SetEnvironmentVariable(
-    "Path",
-    [Environment]::GetEnvironmentVariable("Path", "Machine") + ";C:\gstreamer\1.0\msvc_x86_64\bin",
-    "Machine"
-)
-```
+5. Build the GStreamer plugin registry, once per Windows user account:
 
-**Verify installation:**
+   ```powershell
+   gst-inspect-1.0 coreelements
+   ```
 
-Close and reopen PowerShell (to pick up new PATH), then run:
+   The first GStreamer start for a user scans every installed plugin, which can take tens of
+   seconds. Doing it now keeps that scan out of the first program you run.
 
-```powershell
-gst-inspect-1.0 --version
-```
+### 3. Git
 
-You should see:
-```
-gst-inspect-1.0 version 1.26.7
-GStreamer 1.26.7
-...
-```
-
-If you get `command not found`, the PATH wasn't set correctly. Double-check the path exists:
-
-```powershell
-Test-Path C:\gstreamer\1.0\msvc_x86_64\bin
-```
-
-Should return `True`.
-
-### 3. Git (to clone this repository)
-
-**Check if you have it:**
 ```powershell
 git --version
 ```
 
-**If you need to install Git:**
-1. Download from: https://git-scm.com/download/win
-2. Run installer with default options
-3. Reopen PowerShell and verify: `git --version`
+If it isn't installed, get it from https://git-scm.com/download/win, install with the
+default options, and reopen PowerShell.
 
 ### 4. A Synauson license key
 
-jsyn runs under a license key (free-tier keys work). Set it before running the examples:
+jsyn does not run without a license key; free-tier keys work (see
+[synauson.com](https://synauson.com)). Set it in the PowerShell window you'll run the
+programs from:
 
 ```powershell
 $env:SYNAUSON_LICENSE_KEY = "your-license-key"
 ```
 
-The runtime downloads the AI models your license includes by itself at startup.
+At startup the runtime downloads the AI models your license includes into
+`%LOCALAPPDATA%\synauson\models`. There is nothing to install by hand.
 
-## Getting the Code
-
-Open PowerShell and navigate to where you want the code:
-
-```powershell
-cd C:\Users\YourName\Projects  # or wherever you keep code
-git clone https://github.com/synauson/synauson.git
-cd synauson\examples\jsyn-windows-quickstart
-```
-
-You should now be in the quickstart directory. Verify with:
+## Get the code
 
 ```powershell
-ls
+cd C:\Users\YourName\Projects   # or wherever you keep code
+git clone https://github.com/synauson/examples.git
+cd examples\java\jsyn-windows-quickstart
 ```
 
-You should see:
-```
-build.gradle.kts
-gradle\
-gradlew
-gradlew.bat
-README.md
-settings.gradle.kts
-src\
-```
+`ls` should show `build.gradle.kts`, `settings.gradle.kts`, `gradlew`, `gradlew.bat`,
+`gradle\`, `src\`, `README.md`, `GETTING_STARTED.md` and `.gitignore` (hidden unless you use
+`ls -Force`).
 
-## Running Your First Example
-
-Let's verify everything works by running the file playback example.
-
-**Build the project:**
+## Build and run the first program
 
 ```powershell
 .\gradlew.bat build
 ```
 
-First time will take ~30 seconds to download dependencies. You should see:
-
-```
-BUILD SUCCESSFUL in 15s
-```
-
-**Run the example:**
+The first build downloads Gradle and the dependencies, then prints `BUILD SUCCESSFUL`.
 
 ```powershell
 .\gradlew.bat run
 ```
 
-You should see output like this:
+This runs `FilePlaybackExample`, which plays a generated two-second tone through a
+conference:
 
 ```
 === JSyn File Playback Example ===
@@ -192,103 +148,28 @@ JSyn shutdown complete
 === Example completed successfully ===
 ```
 
-**If you see this, you're done!** JSyn is working correctly.
+If you see that, jsyn is working. Code: `src\main\java\com\example\jsyn\FilePlaybackExample.java`.
 
-## Understanding the Examples
+## The other two programs
 
-The quickstart includes three examples that demonstrate different JSyn capabilities:
+### Native participant I/O
 
-### Example 1: File Playback (simplest)
-
-**What it does:** Plays a generated WAV file through JSyn
-
-**Run it:**
-```powershell
-.\gradlew.bat run
-```
-
-**Code:** `src\main\java\com\example\jsyn\FilePlaybackExample.java`
-
-**Key concepts:**
-- Initializing JSyn runtime
-- Creating a conference
-- Adding a file participant
-- Listening to events (playback started, playback finished)
-- Clean shutdown
-
-**When to use this pattern:**
-- Playing hold music
-- Playing announcements
-- Playing pre-recorded messages
-
-### Example 2: Voice Activity Detection (VAD)
-
-**What it does:** Detects when someone is speaking vs. silence
-
-**Needs** a license that includes `FEATURE_VAD`, and a WAV recording of speech (16 kHz,
-mono, 16-bit PCM). The runtime downloads the VAD model itself.
-
-**Run it:**
-```powershell
-.\gradlew.bat runVadExample --args="C:\path\to\speech.wav"
-```
-
-**Code:** `src\main\java\com\example\jsyn\VadDetectionExample.java`
-
-**Key concepts:**
-- Creating a native participant (for programmatic audio I/O)
-- Waiting for a licensed model with `jsyn.capabilities()`
-- Streaming raw PCM in 20 ms frames (`write` takes what fits and returns the count)
-- Subscribing to VAD events (speech start/end)
-- Real-time voice activity detection
-
-**When to use this pattern:**
-- Detecting when participants are speaking
-- Implementing push-to-talk features
-- Trimming silence from recordings
-
-### Example 3: Native Participant Bidirectional I/O
-
-**What it does:** Shows how to send and receive raw audio bytes
-
-**Run it:**
 ```powershell
 .\gradlew.bat runNativeIOExample
 ```
 
-**Code:** `src\main\java\com\example\jsyn\NativeParticipantIOExample.java`
-
-**Key concepts:**
-- Creating a native participant
-- **Ingress (write):** Sending PCM bytes from Java into the conference
-- **Egress (read):** Reading mixed conference audio from the conference into Java
-- Saving audio to a WAV file
-- Audio routing (connecting participants)
-
-**When to use this pattern:**
-- Building a softphone (send/receive real-time audio)
-- Recording conference audio
-- Processing audio in real-time (echo cancellation, noise reduction, etc.)
-- Streaming audio to/from external systems
-
-**How it works:**
+`NativeParticipantIOExample` plays a file into the conference, routes it to a native
+participant, writes PCM into the conference from Java with `write()`, and reads the mixed
+audio back with `read()` into `output.wav`:
 
 ```
-File Participant               Native Participant
-(plays test.wav) ───────────> (your Java code)
-                                  ├─ write(): send audio into conference
-                                  └─ read(): receive mixed audio from conference
+File participant                Native participant
+(plays input.wav) ───────────►  (your Java code)
+                                  ├─ write(): send audio into the conference
+                                  └─ read(): receive the mixed audio
 ```
 
-The example:
-1. Creates a file participant playing a test WAV
-2. Creates a native participant that receives the file audio
-3. Writes synthetic audio via `write()` (ingress)
-4. Reads mixed conference audio via `read()` (egress)
-5. Saves the received audio to `output.wav`
-6. Validates that audio was received successfully
-
-**Expected output:**
+It ends with a summary like:
 
 ```
 === I/O Summary ===
@@ -303,251 +184,104 @@ Egress bytes read: 76800
 ✓ Validation passed - audio contains signal
 ```
 
-This proves the JNI layer is working correctly for both directions.
+### Voice activity detection
 
-## Using JSyn in Your Own Project
+This one needs a license that includes `FEATURE_VAD` and a WAV recording of speech (16 kHz,
+mono, 16-bit PCM). Silero VAD is trained on speech and won't trigger on a synthetic tone.
 
-Ready to integrate JSyn into your application? Here's how:
-
-### 1. Copy dependency configuration
-
-Create a `build.gradle.kts` in your project with these dependencies:
-
-```kotlin
-plugins {
-    application
-    java
-}
-
-repositories {
-    mavenCentral()
-    maven {
-        name = "Synauson"
-        url = uri("https://maven.synauson.com/releases")
-    }
-}
-
-dependencies {
-    // JSyn API - pure Java
-    implementation("com.synauson:jsyn:1.5.0")
-    
-    // Windows native libraries (includes synauson_jni.dll + onnxruntime.dll)
-    runtimeOnly("com.synauson:jsyn-natives-windows:1.5.0")
-}
-
-java {
-    toolchain {
-        languageVersion = JavaLanguageVersion.of(11)
-    }
-}
+```powershell
+.\gradlew.bat runVadExample --args="C:\path\to\speech.wav"
 ```
 
-### 2. Initialize JSyn in your code
+`VadDetectionExample` waits for the runtime to download the Silero VAD model, streams the
+recording into a native participant with VAD in 20 ms frames, then 1.5 s of silence, and
+waits for the speech start and end events:
 
-```java
-import com.synauson.jsyn.JSyn;
-import com.synauson.jsyn.JSynConfig;
-import com.synauson.jsyn.participant.Conference;
-
-public class MyApp {
-    public static void main(String[] args) {
-        // Configure JSyn
-        JSynConfig config = JSynConfig.builder()
-            // The license key is read from SYNAUSON_LICENSE_KEY unless you pass .licenseKey(...)
-            .rtpPortMin(40000)                // UDP ports for RTP (future SIP/WebRTC)
-            .rtpPortMax(40199)
-            .build();
-        
-        // Initialize JSyn runtime (loads native libraries)
-        try (JSyn jsyn = new JSyn(config)) {
-            
-            // Create a conference
-            try (Conference conference = jsyn.startConference("my-conference")) {
-                
-                // Add participants, route audio, etc.
-                // See examples for patterns
-                
-            } // Conference auto-terminates
-            
-        } // JSyn auto-shuts down
-    }
-}
 ```
+=== JSyn VAD Detection Example ===
 
-### 3. Common patterns
+Loaded C:\path\to\speech.wav (3.2 s of audio)
 
-**Play a file:**
-```java
-conference.addFileParticipant(FileParticipantSpec.builder()
-    .id("file-1")
-    .uri("file:///C:/path/to/audio.wav")
-    .loopPlayback(false)
-    .build());
-```
+Initializing JSyn...
+JSyn initialized: <your license>
 
-**Create a native participant for custom audio I/O:**
-```java
-NativeParticipant participant = conference.addNativeParticipant(
-    "native-1",
-    NativeParticipantSpec.builder()
-        .format(NativeAudioFormat.PCM_S16LE16K_MONO)
-        .build()
-);
+Waiting for the Silero VAD model...
+Model ready
 
-// Send audio into conference
-byte[] pcmData = ...; // Your audio bytes (16-bit PCM, 16kHz, mono)
-participant.write(pcmData, 0, pcmData.length);
+Conference started: vad-example-conference
 
-// Read audio from conference
-byte[] buffer = new byte[1600]; // 50ms at 16kHz
-int bytesRead = participant.read(buffer, 0, buffer.length);
-```
+Creating native participant with VAD (PCM 16 kHz mono)
 
-**Listen to events:**
-```java
-Subscription sub = conference.streamFileEvents("file-1", event -> {
-    if (event instanceof FileEvent.PlaybackStarted) {
-        System.out.println("Playback started!");
-    }
-});
-// Don't forget to close subscription when done
-sub.close();
-```
+Streaming the recording, then 1.5 s of silence...
+✓ VAD: speech START (#1)
+✓ VAD: speech END (2848 ms)
 
-**Route audio between participants:**
-```java
-conference.updatePartyAudioConnections(new ConnectionMatrix(
-    ConnectionEntry.connect("source-id", "destination-id")
-));
+=== VAD Detection Summary ===
+Speech START events: 1
+✓ VAD detected the speech
+JSyn shutdown complete
+
+=== Example completed successfully ===
 ```
 
 ## Troubleshooting
 
-### "Could not resolve com.synauson:jsyn"
+### `Could not resolve com.synauson:jsyn`
 
-**Problem:** Gradle can't download JSyn from the Synauson Maven repository.
+Gradle can't download jsyn. Check that `build.gradle.kts` lists
+`https://maven.synauson.com/releases` under `repositories` (no credentials are needed), that
+the machine can reach it (`curl https://maven.synauson.com/releases/com/synauson/jsyn/maven-metadata.xml`),
+then retry with `.\gradlew.bat build --refresh-dependencies`.
 
-**Solutions:**
-1. Check that `build.gradle.kts` lists `https://maven.synauson.com/releases` under
-   `repositories`. No credentials are needed.
-2. Refresh dependencies:
-   ```powershell
-   .\gradlew.bat build --refresh-dependencies
-   ```
-3. Check the repository is reachable:
-   ```powershell
-   curl https://maven.synauson.com/releases/com/synauson/jsyn/maven-metadata.xml
-   ```
+### `UnsatisfiedLinkError: missing native: com/synauson/jsyn/natives/windows-x86_64/… — add jsyn-natives-<platform> to your classpath`
 
-### "UnsatisfiedLinkError: no synauson_jni in java.library.path"
+`jsyn-natives-windows` isn't on the runtime classpath. Add it as a `runtimeOnly` dependency at
+the same version as `jsyn`.
 
-**Problem:** Native library (DLL) not loading.
+### `UnsatisfiedLinkError: …\synauson_jni.dll: Can't find dependent libraries`
 
-**Solutions:**
-1. Make sure `jsyn-natives-windows` is in your `runtimeOnly` dependencies
-2. Check that GStreamer bin directory is in PATH:
-   ```powershell
-   $env:PATH -split ';' | Select-String gstreamer
-   ```
-   Should show: `C:\gstreamer\1.0\msvc_x86_64\bin`
-3. Restart your IDE/terminal to pick up new PATH
+Windows can't find the GStreamer DLLs. Check that `C:\gstreamer\1.0\msvc_x86_64\bin` is on
+`PATH` in the window you run from (`$env:PATH -split ';' | Select-String gstreamer`), and
+restart the terminal or IDE after changing it.
 
-### "Failed to initialize GStreamer"
+### `GStreamer sanity check failed: …`
 
-**Problem:** GStreamer not installed correctly.
+GStreamer loaded but its plugins are missing or incomplete. Reinstall the runtime MSI with the
+**Complete** installation, check `GSTREAMER_1_0_ROOT_MSVC_X86_64` (step 2.3), and run
+`gst-inspect-1.0 coreelements`.
 
-**Solutions:**
-1. Verify installation:
-   ```powershell
-   gst-inspect-1.0 --version
-   ```
-2. Check exact path:
-   ```powershell
-   Test-Path C:\gstreamer\1.0\msvc_x86_64\bin\gst-inspect-1.0.exe
-   ```
-   Should return `True`
-3. Reinstall both GStreamer packages (runtime + devel) to `C:\gstreamer\`
+### `new JSyn(...)` fails with a license error
 
-### "FailedPreconditionException" naming a model
+`SYNAUSON_LICENSE_KEY` is missing or malformed (`InvalidArgumentException`), or the
+licensing server refused the key (`PermissionDeniedException`). Set a valid key in the same
+window you run from.
 
-**Problem:** The model hasn't finished downloading. The runtime downloads the models your
-license includes in the background at startup.
+### `FailedPreconditionException` naming a model
 
-**Solution:** Wait for the model with `jsyn.capabilities()`, as `VadDetectionExample` does. If
-it never becomes ready, check the machine can reach `dl.synauson.com`.
+The model hasn't finished downloading. Wait for it with `jsyn.capabilities()`, as
+`VadDetectionExample` does. If it never becomes ready, check that the machine can reach
+`dl.synauson.com`.
 
-### "PermissionDeniedException"
+### `PermissionDeniedException` when adding a participant with VAD
 
-**Problem:** Your license doesn't include the capability (for example `FEATURE_VAD`).
+Your license doesn't include that capability (for example `FEATURE_VAD`).
 
-### Build is slow / keeps re-downloading
+### The first run takes tens of seconds before anything happens
 
-**Problem:** Gradle daemon isn't running.
+GStreamer is building its plugin registry. Run `gst-inspect-1.0 coreelements` once (step 2.5).
 
-**Solution:** Remove `--no-daemon` flag from commands. First build after daemon starts takes longer, then subsequent builds are fast.
+### `java.lang.OutOfMemoryError`
 
-### "java.lang.OutOfMemoryError"
+The programs run in their own JVM, not Gradle's, so `org.gradle.jvmargs` doesn't affect them.
+To give them more heap, add this to `build.gradle.kts`:
 
-**Problem:** Not enough heap for Gradle or JSyn.
-
-**Solutions:**
-1. Increase Gradle heap in `gradle.properties`:
-   ```properties
-   org.gradle.jvmargs=-Xmx2g
-   ```
-2. Increase app heap when running:
-   ```powershell
-   .\gradlew.bat run -Dorg.gradle.jvmargs="-Xmx2g"
-   ```
-
-## Next Steps
-
-Now that you have JSyn working:
-
-1. **Read the examples** - Look at the source code in `src\main\java\com\example\jsyn\` to understand the patterns
-2. **Experiment** - Modify the examples to play your own WAV files or generate different audio
-3. **Check the API docs** - JSyn classes are documented with JavaDoc
-4. **Ask questions** - If something doesn't work, ask! Common issues are usually simple fixes
-
-## Version Information
-
-This quickstart was tested with:
-
-- **JSyn version:** `1.5.0` (with `jsyn-natives-windows` `1.5.0`)
-- **GStreamer:** 1.26.7 (MSVC x86_64)
-- **ONNX Runtime:** 1.24.4 (embedded in jsyn-natives-windows)
-- **Java:** 11 or later
-- **Windows:** Windows 10/11 (64-bit)
-
-## Quick Reference
-
-**Build project:**
-```powershell
-.\gradlew.bat build
+```kotlin
+tasks.withType<JavaExec>().configureEach { maxHeapSize = "2g" }
 ```
 
-**Run examples:**
-```powershell
-.\gradlew.bat run                    # File playback
-.\gradlew.bat runVadExample --args="C:\path\to\speech.wav"   # VAD
-.\gradlew.bat runNativeIOExample     # Bidirectional I/O
-```
+## Next steps
 
-**Clean build:**
-```powershell
-.\gradlew.bat clean build
-```
-
-**Refresh dependencies:**
-```powershell
-.\gradlew.bat build --refresh-dependencies
-```
-
-**Show all tasks:**
-```powershell
-.\gradlew.bat tasks
-```
-
----
-
-**Questions or issues?** Contact your Synauson administrator.
+- Read the three programs in `src\main\java\com\example\jsyn\`; each is a single file.
+- To add jsyn to your own project, see [README.md](README.md#use-jsyn-in-your-own-project).
+- For the API, concepts and the jsyn tests that show each feature, see the
+  [jsyn README](https://github.com/synauson/jsyn).
