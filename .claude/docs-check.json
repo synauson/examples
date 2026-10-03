@@ -1,0 +1,9 @@
+{
+  "env_prefixes": ["SYNAUSON_", "TESTBED_", "LICENSING_", "REGISTRY_", "JSYN_"],
+  "external_names": ["TESTBED_EXAMPLES_REPO"],
+  "claude_md_max_lines": 200,
+  "always_loaded_max_lines": 200,
+  "env_scan": ["java/**/*.java", "java/**/*.yml", "java/**/justfile", "java/**/*.kts", "java/**/Dockerfile"],
+  "env_doc_extra": ["java/*/README.md", "java/*/GETTING_STARTED.md"],
+  "deny_scan_extra": ["README.md", "java/*/README.md", "java/*/GETTING_STARTED.md"]
+}

@@ -89,6 +89,21 @@ The testbed Dockerfile's `local-natives` target is driven from the synauson repo
 (`testbed-build-image`, which locates this checkout through `TESTBED_EXAMPLES_REPO`). Keep
 that target and its `_synauson/` build-context layout working.
 
+## Keeping these files true
+
+This file, `java/jsyn-webrtc-testbed/CLAUDE.md` (each has an `AGENTS.md` link to it)
+and each example's README are what agents and developers act on. A change is not done
+until they are true again, in the same commit:
+
+- Before you finish, reread what covers your change and fix, delete or add what the
+  next agent needs. SDK facts belong in jsyn's README; point there.
+- `python3 tools/check-agent-docs.py` (CI's `agent-docs` job) fails on dead paths,
+  `just` recipes, Gradle tasks, npm scripts and env vars these files name. It can't
+  tell whether a sentence is still true. The script is a copy of the synauson repo's;
+  change it there first.
+- Subagents follow this too: list any stale sentence you couldn't fix in your report.
+  When you delegate work, put the first bullet in the prompt.
+
 ## Commits
 
 - Only the `synauson[bot]` GitHub App writes branches and tags (rulesets). The maintainer

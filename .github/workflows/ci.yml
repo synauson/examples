@@ -9,6 +9,21 @@ on:
 
 jobs:
   # -------------------------------------------------------------------------
+  # Agent docs (the CLAUDE.md files) against the repository: paths, recipes,
+  # Gradle tasks, npm scripts and env vars they name. tools/check-agent-docs.py
+  # is a copy of the synauson repo's.
+  # -------------------------------------------------------------------------
+  agent-docs:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check agent docs
+        env:
+          AGENT_DOCS_DENY: ${{ secrets.AGENT_DOCS_DENY }}
+        run: python3 tools/check-agent-docs.py --github
+
+  # -------------------------------------------------------------------------
   # WebRTC testbed: frontend tests, then the Gradle build. With a license key
   # the build's tests start the whole application against the real jsyn
   # runtime: license exchange, model downloads and the conference.

@@ -24,7 +24,7 @@ out to every socket. The README covers running it and the architecture.
 
 ## Building and testing
 
-- `npm run build` writes into `../src/main/resources/static/` (git-ignored), and
+- `npm run build` (in `frontend/`) writes into `src/main/resources/static/` (git-ignored), and
   `processResources` depends on it. `-PskipFrontend` skips it for Java-only iteration.
 - `./gradlew test` forks a JVM per test class (`forkEvery 1`): GStreamer and ONNX Runtime are
   process-global. With `SYNAUSON_LICENSE_KEY` set, `TestbedApplicationTests` starts the whole
