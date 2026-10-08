@@ -1,7 +1,7 @@
 # CLAUDE.md: WebRTC testbed
 
 Spring Boot 3.5 (Java 21) + React/Vite/Tailwind. Browsers open `/room/<id>`, signal over
-`/ws/room/<id>`, and send audio through one jsyn conference; VAD and turn detection events fan
+`/ws/room/<id>`, and send audio through one jsyn conference; VAD and turn-detection events fan
 out to every socket. The README covers running it and the architecture.
 
 ## Where things are
@@ -19,8 +19,8 @@ out to every socket. The README covers running it and the architecture.
   `Detectors: VAD on, turn detection on` is asserted by CI (`testbed-image`).
 - `signaling/envelope/`: the JSON wire format. It is mirrored by `frontend/src/lib/types.ts`
   and `signaling.ts`, and pinned by `EnvelopeJsonTest`. Change both sides together.
-- `frontend/src/lib/probBucket.ts`: turn detection probability buckets. The thresholds (0.65 /
-  0.20) are calibrated against observed fermata-1 output; the tests pin them.
+- `frontend/src/lib/probBucket.ts`: turn-detection probability buckets. The thresholds (0.65 /
+  0.20) are calibrated against the model's observed output; the tests pin them.
 
 ## Building and testing
 

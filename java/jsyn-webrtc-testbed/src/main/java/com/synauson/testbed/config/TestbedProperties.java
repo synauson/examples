@@ -27,8 +27,8 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  * @param vadThreshold    Override for VAD's speech-vs-silence threshold (0–1).
  * @param vadMinSilenceMs Override for the minimum silence before {@code SpeechEnd}.
  * @param vadMinSpeechMs  Override for the minimum speech before {@code SpeechStart}.
- * @param turnDetectionBufferedSamples       Override for TurnDetection's samples-buffered-before-inference.
- * @param turnDetectionConfidenceThreshold   Override for TurnDetection's "turn complete" threshold.
+ * @param turnDetectionBufferedSamples       Override for turn detection's samples-buffered-before-inference.
+ * @param turnDetectionConfidenceThreshold   Override for turn detection's "turn complete" threshold.
  */
 @ConfigurationProperties(prefix = "testbed")
 public record TestbedProperties(

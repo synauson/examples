@@ -25,7 +25,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  *
  * <p>This example:
  * <ol>
- *   <li>Waits for the runtime to download the sentito-1 model your license includes
+ *   <li>Waits for the runtime to download the VAD model your license includes
  *   <li>Creates a native participant with VAD enabled
  *   <li>Streams a speech recording into it in real time, followed by silence
  *   <li>Waits for VAD to report the speech starting and ending
@@ -35,7 +35,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * <ul>
  *   <li>GStreamer 1.26.7 installed
  *   <li>{@code SYNAUSON_LICENSE_KEY} set to a license that includes {@code FEATURE_VAD}
- *   <li>A WAV file of speech: 16 kHz, mono, 16-bit PCM. sentito-1 is trained on
+ *   <li>A WAV file of speech: 16 kHz, mono, 16-bit PCM. VAD is trained on
  *       speech, so a synthetic tone won't trigger it.
  * </ul>
  *
@@ -71,7 +71,7 @@ public class VadDetectionExample {
             // The runtime downloads the licensed models in the background at startup.
             // Adding a VAD participant before the model is on disk throws
             // FailedPreconditionException, so wait for it first.
-            System.out.println("Waiting for the sentito-1 model...");
+            System.out.println("Waiting for the VAD model...");
             awaitModel(jsyn, "sentito-1", Duration.ofMinutes(2));
             System.out.println("Model ready\n");
 

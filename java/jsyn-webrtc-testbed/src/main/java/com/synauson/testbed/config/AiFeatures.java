@@ -18,7 +18,7 @@ import org.slf4j.LoggerFactory;
  * with whatever the license allows instead of refusing every browser.
  *
  * @param vad           attach Voice Activity Detection
- * @param turnDetection attach turn detection end-of-turn detection
+ * @param turnDetection attach end-of-turn detection
  */
 public record AiFeatures(boolean vad, boolean turnDetection) {
 

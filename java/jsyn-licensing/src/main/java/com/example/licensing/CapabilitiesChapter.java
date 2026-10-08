@@ -43,7 +43,7 @@ final class CapabilitiesChapter {
     }
 
     static NativeParticipantSpec withTurnDetection() {
-        // Turn detection is driven by VAD's speech-end events, so turn detection runs both.
+        // The turn detector is driven by VAD's speech-end events, so turn detection runs both.
         return NativeParticipantSpec.builder()
                 .format(NativeAudioFormat.PCM_S16LE16K_MONO)
                 .vad(VadConfig.defaults())
@@ -77,7 +77,7 @@ final class CapabilitiesChapter {
                 ok("joined; AI conferences " + CapabilitiesPrinter.usage(caps.aiConferences)
                         + ". A participant without AI needs no capability and counts toward no AI limit.");
 
-                step("Turn detection (VAD + turn detection on one participant)");
+                step("Turn detection (VAD and the turn detector on one participant)");
                 boolean turnEntitled = Tour.capability(caps, TURN_DETECTION).entitled;
                 if (turnEntitled) {
                     open.push(conference.addNativeParticipant("turn", withTurnDetection()));

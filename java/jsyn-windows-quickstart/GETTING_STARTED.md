@@ -187,13 +187,13 @@ Egress bytes read: 76800
 ### Voice activity detection
 
 This one needs a license that includes `FEATURE_VAD` and a WAV recording of speech (16 kHz,
-mono, 16-bit PCM). sentito-1 is trained on speech and won't trigger on a synthetic tone.
+mono, 16-bit PCM). VAD is trained on speech and won't trigger on a synthetic tone.
 
 ```powershell
 .\gradlew.bat runVadExample --args="C:\path\to\speech.wav"
 ```
 
-`VadDetectionExample` waits for the runtime to download the sentito-1 model, streams the
+`VadDetectionExample` waits for the runtime to download the VAD model, streams the
 recording into a native participant with VAD in 20 ms frames, then 1.5 s of silence, and
 waits for the speech start and end events:
 
@@ -205,7 +205,7 @@ Loaded C:\path\to\speech.wav (3.2 s of audio)
 Initializing JSyn...
 JSyn initialized: <your license>
 
-Waiting for the sentito-1 model...
+Waiting for the VAD model...
 Model ready
 
 Conference started: vad-example-conference

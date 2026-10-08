@@ -14,7 +14,7 @@ the real runtime.
 
 | Example | What it demonstrates end to end | Runs on |
 |---|---|---|
-| [jsyn-webrtc-testbed](java/jsyn-webrtc-testbed) | A Spring Boot + React app: browsers join a room over WebRTC, audio is mixed through one jsyn conference, and every VAD and turn detection event streams live to the UI. Shows WebSocket signalling, rejoin handling, license-aware detectors and clean shutdown. Published as a container image. | Linux (Docker, host networking) |
+| [jsyn-webrtc-testbed](java/jsyn-webrtc-testbed) | A Spring Boot + React app: browsers join a room over WebRTC, audio is mixed through one jsyn conference, and every VAD and turn-detection event streams live to the UI. Shows WebSocket signalling, rejoin handling, license-aware detectors and clean shutdown. Published as a container image. | Linux (Docker, host networking) |
 | [jsyn-licensing](java/jsyn-licensing) | How to set up licensing in a jsyn application: license keys and files, the capabilities report, air-gapped hosts and usage limits. A tour checks each claim against a live runtime. | Docker, or the host on Linux or Windows |
 | [jsyn-windows-quickstart](java/jsyn-windows-quickstart) | A minimal Gradle project for Windows: GStreamer setup, the Maven dependencies, and three small programs for file playback, native audio I/O and VAD. | Windows |
 

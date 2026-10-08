@@ -40,7 +40,7 @@ public record ParticipantSession(
      */
     public void closeNativeState(Runnable conferenceCloser) {
         closeQuietly(vadSubscription, "vad");
-        closeQuietly(turnSubscription, "fermata-1");
+        closeQuietly(turnSubscription, "turn-detection");
         closeQuietly(iceSubscription, "ice");
         try {
             conferenceCloser.run();
