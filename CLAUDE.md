@@ -86,8 +86,10 @@ result yourself before calling a change done.
 
 `.github/workflows/publish-webrtc-testbed.yml` runs on pushes to main that touch the testbed
 (`ubuntu-24.04`). It waits for the pinned `jsyn-natives-linux` POM to appear, then pushes
-the image (tags `latest` and `<branch>-<sha>-<timestamp>`) with the `REGISTRY_*` secrets;
-it is pulled as `cr.synauson.com/synauson/synauson-webrtc-testbed`.
+the image to `cr.synauson.com/synauson/synauson-webrtc-testbed` (tags `latest` and
+`<branch>-<sha>-<timestamp>`) with `REGISTRY_USER` and `REGISTRY_PASSWORD`. It pushes with
+regctl in 50 MiB chunks, since the registry refuses request bodies over 100 MB and
+`docker push` sends each layer in one request; anyone can pull it without logging in.
 
 The testbed Dockerfile's `local-natives` target is driven from the synauson repo's justfile
 (`testbed-build-image`, which locates this checkout through `TESTBED_EXAMPLES_REPO`). Keep
