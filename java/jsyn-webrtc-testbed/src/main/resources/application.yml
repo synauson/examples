@@ -21,13 +21,13 @@ testbed:
   model-wait-seconds: ${TESTBED_MODEL_WAIT_SECONDS:120}
   conference-id: ${TESTBED_CONFERENCE_ID:testbed}
   stun-server: ${TESTBED_STUN_SERVER:stun://stun.l.google.com:19302}
-  # VAD defaults calibrated against canonical sentito-1 parameters.
+  # VAD defaults calibrated against canonical VAD parameters.
   # Canonical VADIterator: threshold=0.5, neg_threshold=threshold-0.15, min_silence=100ms, min_speech=250ms.
   # min-silence-ms is the dominant latency driver — keep as low as tolerable.
   vad-threshold: ${TESTBED_VAD_THRESHOLD:0.5}
   vad-min-silence-ms: ${TESTBED_VAD_MIN_SILENCE_MS:100}
   vad-min-speech-ms: ${TESTBED_VAD_MIN_SPEECH_MS:250}
-  # TurnDetection defaults calibrated against observed fermata-1 output distribution.
+  # Turn-detection defaults calibrated against the model's observed output distribution.
   # The model outputs bimodal: not-done cluster 0.006-0.18, done cluster 0.65-0.95.
   turn-detection-buffered-samples: ${TESTBED_TURN_DETECTION_BUFFERED_SAMPLES:160}
   turn-detection-confidence-threshold: ${TESTBED_TURN_DETECTION_CONFIDENCE_THRESHOLD:0.65}

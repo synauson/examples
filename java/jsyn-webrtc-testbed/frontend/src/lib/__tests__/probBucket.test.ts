@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { probBucket } from '../probBucket';
 
-// Thresholds follow the fermata-1 calibration documented in probBucket.ts.
+// Thresholds follow the turn-detection calibration documented in probBucket.ts.
 describe('probBucket', () => {
   it('returns done (mint) for >= 0.65', () => {
     expect(probBucket(0.65)).toMatchObject({ tone: 'high', label: 'done' });

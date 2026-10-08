@@ -1,7 +1,7 @@
 /**
- * Maps a fermata-1 probability to a visual bucket.
+ * Maps a turn-detection probability to a visual bucket.
  *
- * Thresholds calibrated against observed fermata-1 output distribution:
+ * Thresholds calibrated against the model's observed output distribution:
  *   - "not done" cluster:  0.006 – 0.18  (model confident more speech follows)
  *   - "uncertain" gap:     0.18  – 0.65  (model unsure; turn may be ending)
  *   - "done" cluster:      0.65  – 1.0   (model confident turn is complete)

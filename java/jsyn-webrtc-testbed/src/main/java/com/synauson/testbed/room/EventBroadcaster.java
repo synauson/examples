@@ -15,7 +15,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.Map;
 
 /**
- * Fans out VAD, fermata-1, and outbound ICE candidate events to all sockets.
+ * Fans out VAD, turn-detection, and outbound ICE candidate events to all sockets.
  *
  * <p>Two responsibilities:
  * <ol>
@@ -78,7 +78,7 @@ public class EventBroadcaster {
         broadcast(sessions, envelope);
     }
 
-    /** fermata-1 event fan-out. */
+    /** Turn-detection event fan-out. */
     public void dispatchTurn(String pid, long epoch,
                               Map<String, ParticipantSession> sessions, TurnDetectionEvent event) {
         log.debug("dispatchTurn: pid={} epoch={} eventType={}", pid, epoch,

@@ -42,7 +42,7 @@ jsyn-windows-quickstart/
 - A Synauson license key in `SYNAUSON_LICENSE_KEY` (free-tier keys work). At startup the
   runtime downloads the AI models your license includes into `%LOCALAPPDATA%\synauson\models`.
 - For `runVadExample`: a license that includes `FEATURE_VAD`, and a WAV recording of speech
-  (16 kHz, mono, 16-bit PCM). sentito-1 won't trigger on a synthetic tone.
+  (16 kHz, mono, 16-bit PCM). VAD won't trigger on a synthetic tone.
 
 ## Run it
 

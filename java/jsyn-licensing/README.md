@@ -63,7 +63,7 @@ Capabilities are the AI features a license can include. Conferencing is in every
 | Code | Feature |
 |---|---|
 | `FEATURE_VAD` | Voice activity detection |
-| `FEATURE_TURN_DETECTION` | Turn detection end-of-turn detection, including the VAD that drives it |
+| `FEATURE_TURN_DETECTION` | End-of-turn detection, including the VAD that drives it |
 
 Asking for a capability the license lacks throws `PermissionDeniedException` naming the
 code. The runtime downloads only the models that some licensed capability uses.

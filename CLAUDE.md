@@ -15,7 +15,7 @@ README. There is no root build and no root justfile: `cd` into the example first
 
 | Example | What | Runs on |
 |---|---|---|
-| `java/jsyn-webrtc-testbed` | Spring Boot + React WebRTC conference with live VAD / turn detection events; published as a container image. See its own `CLAUDE.md` | Linux (container) |
+| `java/jsyn-webrtc-testbed` | Spring Boot + React WebRTC conference with live VAD / turn-detection events; published as a container image. See its own `CLAUDE.md` | Linux (container) |
 | `java/jsyn-licensing` | How to set up licensing, with a tour that checks it against a live runtime | Linux, Windows, container |
 | `java/jsyn-windows-quickstart` | Minimal Gradle project: file playback, native audio I/O, VAD | Windows |
 
@@ -58,7 +58,7 @@ When the host lacks them, use the container recipes.
 - Runtimes download the models their license includes at startup. Code that
   adds a detector must wait for `jsyn.capabilities().models` to report `ready`, or handle
   `FailedPreconditionException`.
-- Subscribe to a participant's VAD / turn detection events *after*
+- Subscribe to a participant's VAD / turn-detection events *after*
   adding the participant (the participant carries the detector). Tear down in reverse:
   subscriptions, then the participant, then the conference.
 - CI runs every example against the real runtime and a real license. When you change

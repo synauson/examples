@@ -69,7 +69,7 @@ import java.util.concurrent.locks.ReentrantLock;
  *
  * <p>The implementation deliberately supports {@code sessions.size() == 1}
  * as a fully-functional state: the routing matrix is empty, but the VAD
- * and fermata-1 subscriptions are live and fan out the lone participant's
+ * and turn-detection subscriptions are live and fan out the lone participant's
  * own events back to their own socket. See {@link #rewireMesh} for the
  * matrix-building logic.
  */
@@ -185,7 +185,7 @@ public class ConferenceService {
                 ev -> events.dispatchIce(pid, epoch, sessions, ev));
 
             // Wrap the raw WebSocketSession in a thread-safe decorator so
-            // VAD and TurnDetection events dispatched from separate Tokio threads
+            // VAD and turn-detection events dispatched from separate Tokio threads
             // don't race on sendMessage (Spring's StandardWebSocketSession is
             // not thread-safe; concurrent sends throw TEXT_PARTIAL_WRITING).
             var safeWs = new ConcurrentWebSocketSessionDecorator(ws, 5_000, 64 * 1024);

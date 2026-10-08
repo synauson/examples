@@ -1,6 +1,6 @@
 # JSyn WebRTC Testbed
 
-A Docker-published reference implementation that demonstrates how to use the **[jsyn](https://github.com/synauson/jsyn)** Java client library to host a live WebRTC audio conference with real-time **VAD** (Voice Activity Detection) and **fermata-1 Detection** events.
+A Docker-published reference implementation that demonstrates how to use the **[jsyn](https://github.com/synauson/jsyn)** Java client library to host a live WebRTC audio conference with real-time **VAD** (Voice Activity Detection) and **turn detection** events.
 
 Two browsers connect at `/room/<id>`, audio flows through synauson, and every inference event for every participant is streamed live to both browsers and rendered in a developer-observability UI.
 
@@ -58,8 +58,8 @@ Set these as environment variables (`-e` for the container). They bind to `testb
 | `TESTBED_VAD_THRESHOLD` | `0.5` | VAD speech probability threshold (0 to 1) |
 | `TESTBED_VAD_MIN_SILENCE_MS` | `100` | Silence before a `SpeechEnd` |
 | `TESTBED_VAD_MIN_SPEECH_MS` | `250` | Speech before a `SpeechStart` |
-| `TESTBED_TURN_DETECTION_BUFFERED_SAMPLES` | `160` | Samples turn detection buffers before each inference |
-| `TESTBED_TURN_DETECTION_CONFIDENCE_THRESHOLD` | `0.65` | Probability at which turn detection reports the turn complete |
+| `TESTBED_TURN_DETECTION_BUFFERED_SAMPLES` | `160` | Samples the turn detector buffers before each inference |
+| `TESTBED_TURN_DETECTION_CONFIDENCE_THRESHOLD` | `0.65` | Probability at which the turn detector reports the turn complete |
 
 `just dev` points the model store and state directory at `build/synauson/` so a host run
 doesn't need `/var/lib/synauson`.
