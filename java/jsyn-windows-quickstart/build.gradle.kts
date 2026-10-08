@@ -17,11 +17,11 @@ repositories {
 
 dependencies {
     // JSyn API - pure Java library for Synauson media server integration
-    implementation("com.synauson:jsyn:1.4.0")
+    implementation("com.synauson:jsyn:1.5.0")
 
     // Platform-specific native libraries (Windows x86_64), released with jsyn.
     // Contains synauson_jni.dll and onnxruntime.dll
-    runtimeOnly("com.synauson:jsyn-natives-windows:1.4.0")
+    runtimeOnly("com.synauson:jsyn-natives-windows:1.5.0")
 }
 
 application {

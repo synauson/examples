@@ -38,7 +38,7 @@ When the host lacks them, use the container recipes.
 
 - Examples use the released `com.synauson:jsyn` and the matching
   `jsyn-natives-*` from `https://maven.synauson.com/releases` (no credentials). Versions are
-  pinned in each `build.gradle.kts` (currently `1.4.0`). Bump every example together, and
+  pinned in each `build.gradle.kts` (currently `1.5.0`). Bump every example together, and
   keep jsyn and its natives equal.
 - Every runtime needs `SYNAUSON_LICENSE_KEY`; there is no keyless mode.
   Never commit a key or a `license.lic` (it embeds the key). jsyn behaviour around licensing
