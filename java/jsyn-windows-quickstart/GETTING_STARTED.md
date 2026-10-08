@@ -260,7 +260,7 @@ window you run from.
 
 The model hasn't finished downloading. Wait for it with `jsyn.capabilities()`, as
 `VadDetectionExample` does. If it never becomes ready, check that the machine can reach
-`dl.synauson.com`.
+Cloudflare R2 (`*.r2.cloudflarestorage.com`), where the models download from.
 
 ### `PermissionDeniedException` when adding a participant with VAD
 

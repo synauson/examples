@@ -17,7 +17,8 @@ import java.util.Map;
  * {@code ./gradlew run --args="limits"}. The online chapter checks out the license file
  * and downloads the models that later chapters reuse. The tour needs
  * {@code SYNAUSON_LICENSE_KEY} (a free-tier key works), GStreamer 1.26, and HTTPS access
- * to {@code license.synauson.com} and {@code dl.synauson.com}.
+ * to {@code license.synauson.com} and Cloudflare R2 ({@code *.r2.cloudflarestorage.com}),
+ * where the models download from.
  */
 public final class LicensingTour {
 

@@ -134,7 +134,8 @@ server, which protects a first start during an outage.
 ## Running the tour
 
 You need `SYNAUSON_LICENSE_KEY` (a free-tier key works) and HTTPS access to
-`license.synauson.com` and `dl.synauson.com`. In a container, with Docker:
+`license.synauson.com` and Cloudflare R2 (`*.r2.cloudflarestorage.com`), where the
+models download from. In a container, with Docker:
 
 ```bash
 docker build -t jsyn-licensing-tour .
