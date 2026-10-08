@@ -11,9 +11,10 @@ on:
 # main only moves to commits whose ci checks passed (repository ruleset), so this
 # publishes an image the ci workflow already built, started and health-checked.
 env:
-  # Pushed to the registry in REGISTRY_HOST; pulled publicly as
-  # cr.synauson.com/synauson/synauson-webrtc-testbed.
-  IMAGE: synauson/synauson-webrtc-testbed
+  # Pushed to, and pulled publicly from, cr.synauson.com.
+  IMAGE: cr.synauson.com/synauson/synauson-webrtc-testbed
+  REGCTL_VERSION: v0.11.6
+  REGCTL_SHA256: 8e0e62a497fcdb8048d18aa927a139613176ba0531f412bc541044e28f9856bd
 
 jobs:
   publish:
@@ -39,31 +40,49 @@ jobs:
 
       - name: Compute image tags
         id: tags
-        env:
-          REGISTRY: ${{ secrets.REGISTRY_HOST }}
         run: |
           SHA=$(git rev-parse --short=7 HEAD)
           TS=$(date -u +%Y%m%d%H%M)
           BRANCH=${GITHUB_REF_NAME//\//-}
-          echo "primary=${REGISTRY}/${IMAGE}:${BRANCH}-${SHA}-${TS}" >> "$GITHUB_OUTPUT"
-          echo "latest=${REGISTRY}/${IMAGE}:latest"                  >> "$GITHUB_OUTPUT"
+          echo "primary=${IMAGE}:${BRANCH}-${SHA}-${TS}" >> "$GITHUB_OUTPUT"
+          echo "latest=${IMAGE}:latest"                  >> "$GITHUB_OUTPUT"
 
+      # The OCI layout is pushed with regctl below, so the build only exports it.
       - uses: docker/setup-buildx-action@v3
-
-      - uses: docker/login-action@v3
-        with:
-          registry: ${{ secrets.REGISTRY_HOST }}
-          username: ${{ secrets.REGISTRY_USER }}
-          password: ${{ secrets.REGISTRY_PASSWORD }}
 
       - uses: docker/build-push-action@v6
         with:
           context: .
           file: java/jsyn-webrtc-testbed/Dockerfile
           platforms: linux/amd64
-          push: true
-          tags: |
-            ${{ steps.tags.outputs.primary }}
-            ${{ steps.tags.outputs.latest }}
+          push: false
+          tags: testbed:ci
+          outputs: type=oci,dest=${{ runner.temp }}/image,tar=false
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      # cr.synauson.com refuses request bodies over 100 MB, and docker push
+      # sends each layer in one request (the apt layer is over 300 MB), so
+      # regctl uploads in 50 MiB chunks.
+      - name: Install regctl
+        run: |
+          curl -fsSL -o "$RUNNER_TEMP/regctl" \
+            "https://github.com/regclient/regclient/releases/download/$REGCTL_VERSION/regctl-linux-amd64"
+          echo "$REGCTL_SHA256  $RUNNER_TEMP/regctl" | sha256sum -c -
+          chmod +x "$RUNNER_TEMP/regctl"
+
+      - name: Push
+        env:
+          REGCTL_CONFIG: ${{ runner.temp }}/regctl-config.json
+          REGISTRY_USER: ${{ secrets.REGISTRY_USER }}
+          REGISTRY_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
+          PRIMARY: ${{ steps.tags.outputs.primary }}
+          LATEST: ${{ steps.tags.outputs.latest }}
+        run: |
+          regctl="$RUNNER_TEMP/regctl"
+          printf '%s' "$REGISTRY_PASSWORD" |
+            "$regctl" registry login cr.synauson.com -u "$REGISTRY_USER" --pass-stdin
+          "$regctl" registry set cr.synauson.com --blob-chunk 52428800 --blob-max 52428800
+          for tag in "$PRIMARY" "$LATEST"; do
+            "$regctl" image copy "ocidir://$RUNNER_TEMP/image:ci" "$tag"
+          done
