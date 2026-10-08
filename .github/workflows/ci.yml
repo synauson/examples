@@ -29,7 +29,7 @@ jobs:
   # runtime: license exchange, model downloads and the conference.
   # -------------------------------------------------------------------------
   testbed:
-    runs-on: gh-runner-l
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     defaults:
       run:
@@ -88,7 +88,7 @@ jobs:
   # it to report healthy with both detectors on. Nothing is pushed here.
   # -------------------------------------------------------------------------
   testbed-image:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
@@ -130,7 +130,7 @@ jobs:
   # of the test.
   # -------------------------------------------------------------------------
   licensing:
-    runs-on: gh-runner-l
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     defaults:
       run:
@@ -176,8 +176,10 @@ jobs:
   # released jsyn, as a developer following the README would.
   # -------------------------------------------------------------------------
   quickstart:
-    runs-on: gh-runner-w
+    runs-on: windows-2025
     timeout-minutes: 30
+    env:
+      GST_VERSION: "1.26.7"
     defaults:
       run:
         shell: pwsh
@@ -196,27 +198,30 @@ jobs:
           sparse-checkout: synauson-server/tests/fixtures/short_speech.wav
           sparse-checkout-cone-mode: false
 
-      # gh-runner-w is one persistent machine, so GStreamer normally stays
-      # installed. The installer is downloaded only when it is missing, into
-      # the runner's tool cache rather than the Actions cache.
-      - name: Install GStreamer runtime (if missing)
+      # A fresh GitHub-hosted VM: the installer comes from the Actions cache.
+      - name: Cache the GStreamer installer
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}\gstreamer-msi
+          key: ${{ runner.os }}-gstreamer-msi-${{ env.GST_VERSION }}
+
+      - name: Install GStreamer runtime
         working-directory: ${{ github.workspace }}
         run: |
-          if (Test-Path 'C:\gstreamer\1.0\msvc_x86_64\bin\gstreamer-1.0-0.dll') {
-            Write-Host "GStreamer already installed, skipping."
-          } else {
-            $dl = Join-Path $env:RUNNER_TOOL_CACHE 'synauson-downloads'
-            New-Item -ItemType Directory -Force -Path $dl | Out-Null
-            $msi = Join-Path $dl 'gstreamer-1.0-msvc-x86_64-1.26.7.msi'
-            if (-not (Test-Path $msi)) {
-              Invoke-WebRequest `
-                -Uri "https://gstreamer.freedesktop.org/data/pkg/windows/1.26.7/msvc/gstreamer-1.0-msvc-x86_64-1.26.7.msi" `
-                -OutFile "$msi.part"
-              Move-Item -Force "$msi.part" $msi
-            }
-            $proc = Start-Process msiexec.exe -Wait -PassThru -ArgumentList @(
-              '/i', $msi, '/quiet', '/norestart', 'ADDLOCAL=ALL', 'INSTALLDIR=C:\gstreamer\')
-            if ($proc.ExitCode -ne 0) { throw "msiexec failed with exit code $($proc.ExitCode)" }
+          $dl = Join-Path $env:RUNNER_TEMP 'gstreamer-msi'
+          New-Item -ItemType Directory -Force -Path $dl | Out-Null
+          $name = "gstreamer-1.0-msvc-x86_64-$env:GST_VERSION.msi"
+          $msi = Join-Path $dl $name
+          if (-not (Test-Path $msi)) {
+            Invoke-WebRequest -Uri "https://gstreamer.freedesktop.org/data/pkg/windows/$env:GST_VERSION/msvc/$name" -OutFile "$msi.part"
+            Move-Item -Force "$msi.part" $msi
+          }
+          $log = Join-Path $env:RUNNER_TEMP "$name.log"
+          $proc = Start-Process msiexec.exe -Wait -PassThru -ArgumentList @(
+            '/i', $msi, '/quiet', '/norestart', '/l*v', $log, 'ADDLOCAL=ALL', 'INSTALLDIR=C:\gstreamer\')
+          if ($proc.ExitCode -ne 0) {
+            if (Test-Path $log) { Get-Content $log -Tail 40 }
+            throw "msiexec failed with exit code $($proc.ExitCode)"
           }
           "C:\gstreamer\1.0\msvc_x86_64\bin" | Out-File -FilePath $env:GITHUB_PATH -Append -Encoding utf8
 
@@ -234,7 +239,16 @@ jobs:
           distribution: temurin
           java-version: '11'
 
-      # No Gradle cache: ~/.gradle persists on gh-runner-w.
+      - name: Cache Gradle wrapper + caches
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-quickstart-${{ hashFiles('java/jsyn-windows-quickstart/**/*.gradle*', 'java/jsyn-windows-quickstart/gradle/wrapper/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-quickstart-
+
       - name: build
         run: ./gradlew.bat build --no-daemon --console=plain
 

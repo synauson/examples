@@ -72,16 +72,20 @@ When the host lacks them, use the container recipes.
 
 | Job | Runner | What | Required for main |
 |---|---|---|---|
-| `testbed` | `gh-runner-l` (self-hosted Linux) | frontend tests, then `./gradlew build` with `SYNAUSON_LICENSE_KEY` and `TESTBED_EXPECT_DETECTORS=true` | yes |
-| `testbed-image` | `ubuntu-latest` | builds the image, runs it, waits for health and greps the `Detectors:` line | yes |
-| `quickstart` | `gh-runner-w` (self-hosted Windows) | GStreamer runtime MSI, `gst-inspect-1.0 coreelements`, then all three examples; the speech fixture comes from the private synauson repo via the read-only `SYNAUSON_DEPLOY_KEY` | yes |
-| `licensing` | `gh-runner-l` | the whole tour with the free-tier `LICENSING_TOUR_LICENSE_KEY` | **no** |
+| `testbed` | `ubuntu-24.04` | frontend tests, then `./gradlew build` with `SYNAUSON_LICENSE_KEY` and `TESTBED_EXPECT_DETECTORS=true` | yes |
+| `testbed-image` | `ubuntu-24.04` | builds the image, runs it, waits for health and greps the `Detectors:` line | yes |
+| `quickstart` | `windows-2025` | GStreamer runtime MSI, `gst-inspect-1.0 coreelements`, then all three examples; the speech fixture comes from the private synauson repo via the read-only `SYNAUSON_DEPLOY_KEY` | yes |
+| `licensing` | `ubuntu-24.04` | the whole tour with the free-tier `LICENSING_TOUR_LICENSE_KEY` | **no** |
+
+Every job runs on a GitHub-hosted runner, never a self-hosted one: a public repository's
+workflows must not reach private machines. Jobs start cold and install what they need; the
+GStreamer installer and Gradle's caches come from the Actions cache.
 
 `licensing` is not a required check, so main can move while the tour is red: check its
 result yourself before calling a change done.
 
 `.github/workflows/publish-webrtc-testbed.yml` runs on pushes to main that touch the testbed
-(`ubuntu-latest`). It waits for the pinned `jsyn-natives-linux` POM to appear, then pushes
+(`ubuntu-24.04`). It waits for the pinned `jsyn-natives-linux` POM to appear, then pushes
 the image (tags `latest` and `<branch>-<sha>-<timestamp>`) with the `REGISTRY_*` secrets;
 it is pulled as `cr.synauson.com/synauson/synauson-webrtc-testbed`.
 
