@@ -1,30 +1,42 @@
 package com.synauson.testbed;
 
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import com.synauson.testbed.config.AiFeatures;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
+import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.TestPropertySource;
 
 /**
- * Context-load smoke test. Requires the JSyn natives and ONNX models to be
- * available; otherwise the JSyn bean's constructor throws and the test fails.
+ * Starts the whole application against the real JSyn runtime: loads the natives,
+ * exchanges the license key, downloads the licensed models and starts the conference.
  *
- * <p>Disabled by default; enable explicitly when you have models on disk:
+ * <p>Runs when {@code SYNAUSON_LICENSE_KEY} is set and GStreamer 1.26 is installed:
  * <pre>{@code
- *   ./gradlew test -Drun.integration.tests=true \
- *     -Dtestbed.models.path=/abs/path/to/models
+ *   SYNAUSON_LICENSE_KEY=... ./gradlew test
  * }</pre>
+ * Set {@code TESTBED_EXPECT_DETECTORS=true} when the key includes VAD and turn
+ * detection, to also require both detectors (CI does).
  */
 @SpringBootTest
 @TestPropertySource(properties = {
-    "testbed.models-dir=${testbed.models.path:/tmp/synauson-models-missing}",
+    "testbed.model-store=${java.io.tmpdir}/synauson-testbed-it/models",
+    "testbed.state-dir=${java.io.tmpdir}/synauson-testbed-it/state",
     "testbed.conference-id=ctx-load-test",
 })
-@EnabledIfSystemProperty(named = "run.integration.tests", matches = "true")
+@EnabledIfEnvironmentVariable(named = "SYNAUSON_LICENSE_KEY", matches = ".+")
 class TestbedApplicationTests {
+
+    @Autowired
+    private AiFeatures ai;
+
     @Test
     void contextLoads() {
-        // No assertions — if @SpringBootTest's context refresh completes,
-        // the JSyn runtime is up and the conference was created.
+        if (Boolean.parseBoolean(System.getenv("TESTBED_EXPECT_DETECTORS"))) {
+            assertTrue(ai.vad(), "VAD should be available");
+            assertTrue(ai.turnDetection(), "turn detection should be available");
+        }
     }
 }

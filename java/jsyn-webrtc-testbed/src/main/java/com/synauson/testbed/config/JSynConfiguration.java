@@ -3,6 +3,7 @@ package com.synauson.testbed.config;
 import com.synauson.jsyn.JSyn;
 import com.synauson.jsyn.JSynConfig;
 import com.synauson.jsyn.participant.Conference;
+import java.time.Duration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Bean;
@@ -52,25 +53,48 @@ public class JSynConfiguration {
      * invokes at shutdown thanks to {@code destroyMethod = "close"}) tears
      * everything down but a second {@link JSyn} cannot be constructed afterwards.
      *
-     * <p>Configuration values come from {@link TestbedProperties}; the
-     * RTP port range matters for SIP participants (unused in this testbed,
-     * but JSynConfig requires a value), the STUN server matters for the
-     * WebRTC ICE exchange.
+     * <p>Configuration values come from {@link TestbedProperties}. The
+     * license key is exchanged for a signed license file (cached in the state
+     * directory) before the constructor returns; a missing or refused key makes
+     * it throw. The RTP port range matters for SIP participants (unused in this
+     * testbed, but JSynConfig requires a value), the STUN server matters for
+     * the WebRTC ICE exchange.
      *
      * @param props testbed properties; injected by Spring
      * @return the JSyn runtime, ready to start conferences
      */
     @Bean(destroyMethod = "close")
     public JSyn jsyn(TestbedProperties props) {
-        log.info("Initialising JSyn runtime with models dir {}", props.modelsDir());
+        log.info("Initialising JSyn runtime with model store {}", props.modelStore());
         JSynConfig cfg = JSynConfig.builder()
-                .modelsDir(props.modelsDir())
+                // Null reads SYNAUSON_LICENSE_KEY from the environment.
+                .licenseKey(blankToNull(props.licenseKey()))
+                .modelStore(blankToNull(props.modelStore()))
+                .stateDir(blankToNull(props.stateDir()))
                 .rtpPortMin(40000)       // unused for WebRTC, but JSynConfig requires it
                 .rtpPortMax(40199)
                 .webrtcStunServer(props.stunServer())
                 .webrtcJitterBufferMs(200)
                 .build();
         return new JSyn(cfg);
+    }
+
+    /**
+     * The detectors each participant gets, once the licensed models have
+     * downloaded. See {@link AiFeatures#await}.
+     *
+     * @param jsyn  the JSyn runtime; injected
+     * @param props testbed properties; injected
+     * @return the detectors the license and the model store allow
+     * @throws InterruptedException if startup is interrupted while waiting
+     */
+    @Bean
+    public AiFeatures aiFeatures(JSyn jsyn, TestbedProperties props) throws InterruptedException {
+        return AiFeatures.await(jsyn, Duration.ofSeconds(props.modelWaitSeconds()));
+    }
+
+    private static String blankToNull(String value) {
+        return value == null || value.isBlank() ? null : value;
     }
 
     /**

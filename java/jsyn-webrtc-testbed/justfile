@@ -5,10 +5,11 @@
 #   Java 21  — provided by the repo's .envrc
 #   npm 20+  — for the Vite frontend build (inside the container build)
 #   podman   — for building and running the container image
+#   SYNAUSON_LICENSE_KEY in the environment — a Synauson license key
 
 image     := "synauson-webrtc-testbed:dev"
 container := "webrtc-testbed"
-models    := justfile_directory() / "../../models"
+state     := justfile_directory() / "build/synauson"
 repo_root := justfile_directory() / "../.."
 
 # List all available recipes
@@ -30,6 +31,9 @@ run conference="testbed":
     podman run --rm \
         --name {{container}} \
         --network host \
+        -e SYNAUSON_LICENSE_KEY \
+        -v synauson-testbed-models:/var/lib/synauson/models \
+        -v synauson-testbed-state:/var/lib/synauson/state \
         -e TESTBED_CONFERENCE_ID={{conference}} \
         {{image}}
 
@@ -39,6 +43,9 @@ up conference="testbed": build-image
     podman run --rm \
         --name {{container}} \
         --network host \
+        -e SYNAUSON_LICENSE_KEY \
+        -v synauson-testbed-models:/var/lib/synauson/models \
+        -v synauson-testbed-state:/var/lib/synauson/state \
         -e TESTBED_CONFERENCE_ID={{conference}} \
         {{image}}
 
@@ -64,7 +71,8 @@ test:
 # Run Spring Boot directly on the host — fastest dev loop, no container rebuild needed
 dev conference="testbed":
     TESTBED_CONFERENCE_ID={{conference}} \
-        TESTBED_MODELS_DIR="{{models}}" \
+        TESTBED_MODEL_STORE="{{state}}/models" \
+        TESTBED_STATE_DIR="{{state}}/state" \
         ./gradlew --no-daemon bootRun
 
 # ===== Cleanup =====

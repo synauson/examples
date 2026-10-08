@@ -11,7 +11,14 @@ spring:
 # in the form TESTBED_FOO_BAR resolve to testbed.foo-bar via Spring's
 # relaxed binding.
 testbed:
-  models-dir: ${TESTBED_MODELS_DIR:/opt/synauson/models}
+  # Blank reads SYNAUSON_LICENSE_KEY, the usual way to pass the key.
+  license-key: ${TESTBED_LICENSE_KEY:}
+  # The runtime downloads the licensed models here and caches the license file in
+  # the state directory. Mount both as volumes so restarts reuse them.
+  model-store: ${TESTBED_MODEL_STORE:/var/lib/synauson/models}
+  state-dir: ${TESTBED_STATE_DIR:/var/lib/synauson/state}
+  # How long startup waits for the model downloads before running without them.
+  model-wait-seconds: ${TESTBED_MODEL_WAIT_SECONDS:120}
   conference-id: ${TESTBED_CONFERENCE_ID:testbed}
   stun-server: ${TESTBED_STUN_SERVER:stun://stun.l.google.com:19302}
   # VAD defaults calibrated against canonical sentito-1 parameters.

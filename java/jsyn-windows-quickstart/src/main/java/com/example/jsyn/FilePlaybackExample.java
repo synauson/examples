@@ -29,7 +29,7 @@ import java.util.concurrent.TimeUnit;
  * <p><b>Prerequisites:</b>
  * <ul>
  *   <li>GStreamer 1.26.7 installed (runtime + development packages)
- *   <li>ONNX models directory (can be empty for file-only examples)
+ *   <li>{@code SYNAUSON_LICENSE_KEY} set to your Synauson license key
  * </ul>
  */
 public class FilePlaybackExample {
@@ -43,11 +43,9 @@ public class FilePlaybackExample {
         System.out.println("Generated test WAV: " + testWav);
 
         // Step 2: Configure JSyn
-        // The models directory is required but can be empty for file-only examples.
-        // For VAD/TurnDetection, you need actual ONNX models.
-        Path modelsDir = Files.createTempDirectory("jsyn-models-");
+        // The license key is read from SYNAUSON_LICENSE_KEY. File playback needs no
+        // AI models, so this example works with any license.
         JSynConfig config = JSynConfig.builder()
-                .modelsDir(modelsDir.toAbsolutePath().toString())
                 .rtpPortMin(40000)
                 .rtpPortMax(40199)
                 .build();

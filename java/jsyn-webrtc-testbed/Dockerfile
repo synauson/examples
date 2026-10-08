@@ -2,30 +2,36 @@
 # =============================================================================
 # Synauson WebRTC Testbed — Multi-stage Docker build
 #
-# Build context: repo root of synauson/examples, with synauson/synauson checked
-# out into _synauson/ by CI before the build runs.
+# Build context: the repo root of synauson/examples.
 #
 #   docker build -f java/jsyn-webrtc-testbed/Dockerfile .
 #
+# The default target runs the published jsyn-natives-linux. The local-natives
+# target instead compiles libsynauson_jni.so from a synauson source tree placed at
+# _synauson/ in the build context (synauson's own development loop uses it):
+#
+#   docker build --target local-natives -f java/jsyn-webrtc-testbed/Dockerfile .
+#
 # Stages:
-#   1. frontend  — Node 22 builds the Vite + React + TS bundle into /work/frontend/dist
-#   2. backend   — JDK 21 compiles the Spring Boot app; copies the frontend dist
-#                  into src/main/resources/static before running bootJar
-#   3. native    — Rust on debian:trixie compiles libsynauson_jni.so against the
-#                  same glibc (2.41) as the runtime container. The jsyn-natives-linux
-#                  artifact from the Synauson Maven repository is built on Ubuntu 26.04 (glibc 2.43) and
-#                  cannot run on debian:trixie; building locally avoids that mismatch.
-#   4. patcher   — Replaces libsynauson_jni.so inside the nested jsyn-natives-linux
-#                  JAR that lives inside the Spring Boot fat jar, using zip in-place.
-#   5. runtime   — JRE 21 + GStreamer 1.26 from apt; patched jar runs with the
-#                  locally compiled native library.
+#   frontend      — Node 22 builds the Vite + React + TS bundle into /work/frontend/dist
+#   backend       — JDK 21 compiles the Spring Boot app; copies the frontend dist
+#                   into src/main/resources/static before running bootJar
+#   native        — (local-natives only) compiles libsynauson_jni.so from _synauson/
+#   patcher       — (local-natives only) swaps it into the nested jsyn-natives-linux JAR
+#   runtime-base  — JRE 21 + GStreamer 1.26 from apt
+#   local-natives — runtime-base + the patched jar
+#   runtime       — runtime-base + the jar as built (default)
+#
+# The license key comes from SYNAUSON_LICENSE_KEY at run time. The runtime downloads
+# the licensed models into /var/lib/synauson/models and caches the license file in
+# /var/lib/synauson/state; mount volumes there so restarts reuse them.
 # =============================================================================
 ARG NODE_VERSION=22
 ARG JDK_VERSION=21
 ARG RUST_VERSION=1.88.0
 ARG ORT_VERSION=1.24.4
 
-# ---- Stage 1: frontend -------------------------------------------------------
+# ---- frontend ----------------------------------------------------------------
 FROM node:${NODE_VERSION}-bookworm-slim AS frontend
 WORKDIR /work
 # Cache the npm install layer separately so code changes don't re-trigger it.
@@ -37,7 +43,7 @@ COPY java/jsyn-webrtc-testbed/frontend/ frontend/
 ENV VITE_OUT_DIR=/work/frontend/dist
 RUN cd frontend && npm run build
 
-# ---- Stage 2: backend --------------------------------------------------------
+# ---- backend -----------------------------------------------------------------
 FROM eclipse-temurin:${JDK_VERSION}-jdk AS backend
 WORKDIR /work
 # Cache Gradle dependency resolution by copying build files first.
@@ -53,12 +59,11 @@ COPY java/jsyn-webrtc-testbed/src/ src/
 COPY --from=frontend /work/frontend/dist/ src/main/resources/static/
 RUN ./gradlew --no-daemon -PskipFrontend bootJar
 
-# ---- Stage 3: native ---------------------------------------------------------
-# Builds libsynauson_jni.so from source on debian:trixie so the binary links
-# against glibc 2.41 (matching the runtime stage) instead of the dev machine's
-# glibc 2.43. ORT and GStreamer dev headers are required by synauson-core and
-# synauson-onnx, which synauson-jni pulls in transitively.
-# CI checks out synauson/synauson into _synauson/ before running this build.
+# ---- native (local-natives only) --------------------------------------------
+# Builds libsynauson_jni.so from _synauson/ on debian:trixie so the binary links
+# against the runtime stage's glibc (2.41) rather than the dev machine's. ORT and
+# GStreamer dev headers are required by synauson-core and synauson-onnx, which
+# synauson-jni pulls in transitively.
 FROM debian:trixie AS native
 ARG RUST_VERSION
 ARG ORT_VERSION
@@ -88,11 +93,10 @@ ENV ORT_DYLIB_PATH=/opt/onnxruntime/lib/libonnxruntime.so.${ORT_VERSION}
 ENV PROTOC=/usr/bin/protoc
 
 WORKDIR /src
-# CI places the synauson/synauson workspace at _synauson/ in the build context.
 COPY _synauson/ .
 RUN cargo build --release -p synauson-jni
 
-# ---- Stage 4: patcher --------------------------------------------------------
+# ---- patcher (local-natives only) -------------------------------------------
 # Replaces the pre-built libsynauson_jni.so embedded inside jsyn-natives-linux
 # (which lives as a nested JAR inside the Spring Boot fat JAR) with the version
 # compiled in the native stage. zip -u updates an existing entry in-place.
@@ -129,7 +133,7 @@ RUN set -e && \
     cd /tmp/treedir && zip -0 /opt/testbed/app.jar "$NATIVES_ENTRY" && \
     rm -rf /tmp/patchdir /tmp/newso /tmp/treedir
 
-# ---- Stage 5: runtime --------------------------------------------------------
+# ---- runtime-base --------------------------------------------------------------
 # Use debian:trixie (Debian 13, stable since June 2025) rather than
 # eclipse-temurin:JRE because eclipse-temurin floating tags now resolve to
 # Ubuntu 26.04 which ships GStreamer 1.28.x. GStreamer 1.28 introduced a
@@ -137,7 +141,7 @@ RUN set -e && \
 # returns None) that crashes the conference on browser join. Trixie ships
 # GStreamer 1.26.2 and OpenJDK 21, gets ~5 years of security support, and
 # produces a smaller image than Ubuntu.
-FROM debian:trixie AS runtime
+FROM debian:trixie AS runtime-base
 ENV DEBIAN_FRONTEND=noninteractive
 ENV JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64
 ENV PATH=${JAVA_HOME}/bin:${PATH}
@@ -151,17 +155,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       ca-certificates \
  && rm -rf /var/lib/apt/lists/*
 
-# Bake the ONNX models into a known location. NativeLoader (inside JSyn)
-# extracts libsynauson_jni.so and libonnxruntime.so from the classpath at
-# JVM startup, but the .onnx model FILES still need to live on disk.
-# CI places the synauson/synauson workspace at _synauson/ in the build context.
-COPY _synauson/models/ /opt/synauson/models/
-
-COPY --from=patcher /opt/testbed/app.jar /opt/testbed/app.jar
+# NativeLoader (inside JSyn) extracts libsynauson_jni.so and libonnxruntime.so
+# from the classpath at JVM startup; the models are downloaded at run time.
+RUN mkdir -p /var/lib/synauson/models /var/lib/synauson/state
 
 # Environment defaults. Override at runtime with -e or docker-compose env_file.
 ENV TESTBED_SERVER_PORT=8080
-ENV TESTBED_MODELS_DIR=/opt/synauson/models
+ENV TESTBED_MODEL_STORE=/var/lib/synauson/models
+ENV TESTBED_STATE_DIR=/var/lib/synauson/state
 ENV TESTBED_CONFERENCE_ID=testbed
 ENV TESTBED_STUN_SERVER=stun://stun.l.google.com:19302
 
@@ -170,3 +171,11 @@ EXPOSE 8080
 # Run with host networking on Linux (--network host) so webrtcbin's ICE
 # candidates advertise the host's real IP and media reaches the container.
 ENTRYPOINT ["java", "-jar", "/opt/testbed/app.jar"]
+
+# ---- local-natives -------------------------------------------------------------
+FROM runtime-base AS local-natives
+COPY --from=patcher /opt/testbed/app.jar /opt/testbed/app.jar
+
+# ---- runtime (default) ---------------------------------------------------------
+FROM runtime-base AS runtime
+COPY --from=backend /work/build/libs/synauson-webrtc-testbed-*.jar /opt/testbed/app.jar

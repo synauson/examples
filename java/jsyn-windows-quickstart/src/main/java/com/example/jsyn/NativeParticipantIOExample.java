@@ -61,10 +61,8 @@ public class NativeParticipantIOExample {
         System.out.println("Input WAV: " + inputWav);
         System.out.println("Output WAV: " + outputWav + "\n");
 
-        // Step 2: Configure JSyn
-        Path modelsDir = Files.createTempDirectory("jsyn-models-");
+        // Step 2: Configure JSyn (the license key is read from SYNAUSON_LICENSE_KEY)
         JSynConfig config = JSynConfig.builder()
-                .modelsDir(modelsDir.toAbsolutePath().toString())
                 .rtpPortMin(40400)
                 .rtpPortMax(40599)
                 .build();

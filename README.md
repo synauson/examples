@@ -22,7 +22,8 @@ features.
 
 Each example lists its own prerequisites in its `README.md`. The common thread:
 
-- A running synauson instance (see [synauson.com](https://synauson.com) for how to obtain one)
+- A Synauson license key in `SYNAUSON_LICENSE_KEY` (free-tier keys work; see [synauson.com](https://synauson.com)).
+  jsyn runs the media engine in-process and downloads the AI models your license includes.
 - jsyn from the public Synauson Maven repository, `https://maven.synauson.com/releases` (no credentials needed)
 - GStreamer 1.26.x installed on the host
 

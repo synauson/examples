@@ -35,12 +35,19 @@ Verify installation:
 gst-inspect-1.0 --version
 ```
 
-### 3. ONNX Models (for VAD example only)
+### 3. A Synauson license key
 
-The VAD (Voice Activity Detection) example requires ONNX Runtime models. If you don't have them:
+jsyn runs under a license key (free-tier keys work). Set it in the environment before
+running the examples:
 
-- **File playback example**: Works without models (uses stub directory)
-- **VAD example**: Requires `sentito-1.onnx` in `../../models/` directory
+```powershell
+$env:SYNAUSON_LICENSE_KEY = "your-license-key"
+```
+
+At startup the runtime downloads the AI models your license includes (for example sentito
+VAD) into `%LOCALAPPDATA%\synauson\models`; nothing to install by hand. The VAD example also
+needs a WAV recording of speech (16 kHz, mono, 16-bit PCM), because sentito-1 is trained on
+speech and won't trigger on a synthetic tone.
 
 ## Project Structure
 
@@ -59,10 +66,10 @@ This project pulls JSyn from the Synauson Maven repository:
 
 ```kotlin
 // Pure Java API
-implementation("com.synauson:jsyn:main-65a2237-202605252000-SNAPSHOT")
+implementation("com.synauson:jsyn:1.4.0")
 
 // Windows native libraries (synauson_jni.dll + onnxruntime.dll)
-runtimeOnly("com.synauson:jsyn-natives-windows:main-65a2237-202605252000-SNAPSHOT")
+runtimeOnly("com.synauson:jsyn-natives-windows:1.4.0")
 ```
 
 The artifacts are published to:
@@ -111,56 +118,38 @@ JSyn shutdown complete
 
 ### 2. VAD Detection Example
 
-Demonstrates voice activity detection by writing synthetic audio with speech/silence patterns:
+Streams a speech recording into a native participant with VAD enabled and waits for VAD to
+report the speech starting and ending. Pass a WAV file of speech (16 kHz, mono, 16-bit PCM):
 
 ```powershell
-./gradlew.bat runVadExample
+./gradlew.bat runVadExample --args="C:\path\to\speech.wav"
 ```
 
-**Note**: Requires ONNX models at `../../models/sentito-1.onnx`.
-
-Expected output:
+It waits for the runtime to download the sentito-1 model first, and needs a license that
+includes `FEATURE_VAD`. Expected output:
 
 ```
 === JSyn VAD Detection Example ===
 
-Initializing JSyn with VAD models...
-JSyn initialized
+Loaded C:\path\to\speech.wav (3.2 s of audio)
+
+Initializing JSyn...
+JSyn initialized: <your license>
+
+Waiting for the sentito-1 model...
+Model ready
 
 Conference started: vad-example-conference
 
-Creating native participant with VAD:
-  Participant ID: native-vad-test
-  Sample rate: 16 kHz
-  Channels: mono
-  VAD threshold: 0.5
+Creating native participant with VAD (PCM 16 kHz mono)
 
-Native participant created
-
-Generating and writing synthetic audio:
-  - 1 second of speech (440 Hz sine wave)
-  - 1 second of silence
-  - 1 second of speech (880 Hz sine wave)
-  - 1 second of silence
-
-Wrote speech segment 1 (440 Hz, 1s)
-Wrote silence segment 1 (1s)
-Wrote speech segment 2 (880 Hz, 1s)
-Wrote silence segment 2 (1s)
-
-Waiting for VAD events...
-✓ VAD: Speech START (event #1)
-✓ VAD: Speech END (duration: 1024 ms, event #1)
-✓ VAD: Speech START (event #2)
-✓ VAD: Speech END (duration: 1024 ms, event #2)
+Streaming the recording, then 1.5 s of silence...
+✓ VAD: speech START (#1)
+✓ VAD: speech END (2848 ms)
 
 === VAD Detection Summary ===
-Speech START events: 2
-Speech END events: 2
-
-✓ VAD working correctly - detected multiple speech segments
-
-Terminating conference...
+Speech START events: 1
+✓ VAD detected the speech
 JSyn shutdown complete
 
 === Example completed successfully ===
@@ -255,8 +244,8 @@ repositories {
 
 ```kotlin
 dependencies {
-    implementation("com.synauson:jsyn:main-65a2237-202605252000-SNAPSHOT")
-    runtimeOnly("com.synauson:jsyn-natives-windows:main-65a2237-202605252000-SNAPSHOT")
+    implementation("com.synauson:jsyn:1.4.0")
+    runtimeOnly("com.synauson:jsyn-natives-windows:1.4.0")
 }
 ```
 
@@ -267,7 +256,7 @@ import com.synauson.jsyn.JSyn;
 import com.synauson.jsyn.JSynConfig;
 
 JSynConfig config = JSynConfig.builder()
-    .modelsDir("C:/path/to/models")  // Required, can be empty for file-only
+    .licenseKey(System.getenv("SYNAUSON_LICENSE_KEY"))  // or leave unset to read it from the environment
     .rtpPortMin(40000)
     .rtpPortMax(40199)
     .build();
@@ -284,10 +273,17 @@ try (JSyn jsyn = new JSyn(config)) {
 - Verify `jsyn-natives-windows` is in your runtime classpath
 - Check that GStreamer bin directory is in PATH
 
-### `Failed to load ONNX model`
+### `new JSyn(...)` fails with a license error
 
-- Verify `models` directory contains `sentito-1.onnx`
-- For file-only examples, models directory can be empty
+- Set `SYNAUSON_LICENSE_KEY`; the runtime won't start without a key, or with one the
+  licensing server refuses.
+
+### `FailedPreconditionException` naming a model, or `PermissionDeniedException`
+
+- `FailedPreconditionException`: the model hasn't finished downloading yet. Wait for it with
+  `jsyn.capabilities()` as `VadDetectionExample` does.
+- `PermissionDeniedException`: your license doesn't include that capability (for example
+  `FEATURE_VAD`).
 
 ### `gst_init failed`
 
@@ -307,7 +303,7 @@ See the JSyn JavaDoc for complete API documentation:
 
 ## Version Information
 
-- **JSyn version**: `main-65a2237-202605252000-SNAPSHOT`
+- **JSyn version**: `1.4.0` (with `jsyn-natives-windows` `1.4.0`)
 - **GStreamer**: 1.26.7 (MSVC x86_64)
 - **ONNX Runtime**: 1.24.4 (embedded in jsyn-natives-windows)
 - **Java**: 11 or later
