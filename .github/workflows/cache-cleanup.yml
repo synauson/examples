@@ -1,0 +1,62 @@
+name: cache-cleanup
+
+# Actions caches share one 10 GB budget per repository; past it GitHub evicts
+# the least recently used entries, which thrashes the ones CI needs. This
+# deletes caches nothing can restore any more: a closed PR's (GitHub's
+# documented cleanup pattern), a deleted branch's, and, in the daily sweep,
+# entries superseded by a newer key and Docker layers the last build dropped.
+# Run it by hand for a dry run: .github/scripts/cache-cleanup.py --help.
+on:
+  pull_request:
+    types: [closed]
+  delete:
+  schedule:
+    - cron: '23 5 * * *'
+  workflow_dispatch:
+    inputs:
+      dry-run:
+        description: List what the sweep would delete, delete nothing
+        type: boolean
+        default: true
+
+permissions:
+  actions: write
+  contents: read
+
+concurrency:
+  group: cache-cleanup
+  cancel-in-progress: false
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    # `delete` also fires for tags, whose caches the sweep handles.
+    if: github.event_name != 'delete' || github.event.ref_type == 'branch'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          sparse-checkout: .github/scripts
+
+      - name: Delete unused caches
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          EVENT: ${{ github.event_name }}
+          PR_REF: refs/pull/${{ github.event.pull_request.number }}/merge
+          # Via env, never inlined: a branch name is untrusted input.
+          DELETED_REF: refs/heads/${{ github.event.ref }}
+          DRY_RUN: ${{ inputs.dry-run }}
+        run: |
+          case "$EVENT" in
+            pull_request) python3 .github/scripts/cache-cleanup.py --ref "$PR_REF" ;;
+            delete) python3 .github/scripts/cache-cleanup.py --ref "$DELETED_REF" ;;
+            workflow_dispatch)
+              if [ "$DRY_RUN" = true ]; then
+                python3 .github/scripts/cache-cleanup.py --sweep --dry-run
+              else
+                python3 .github/scripts/cache-cleanup.py --sweep
+              fi ;;
+            *) python3 .github/scripts/cache-cleanup.py --sweep ;;
+          esac
