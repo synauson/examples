@@ -14,7 +14,7 @@ jobs:
   # runtime: license exchange, model downloads and the conference.
   # -------------------------------------------------------------------------
   testbed:
-    runs-on: [self-hosted, Linux, X64, synauson]
+    runs-on: gh-runner-l
     timeout-minutes: 20
     defaults:
       run:
@@ -104,6 +104,55 @@ jobs:
           docker logs testbed
           curl -fs http://127.0.0.1:8080/actuator/health | grep -q UP
           docker logs testbed 2>&1 | grep -q "Detectors: VAD on, turn detection on"
+
+  # -------------------------------------------------------------------------
+  # Licensing tour: every chapter against license.synauson.com with a real
+  # free-tier license (ci-examples-licensing), so the tour's claims about
+  # check-out, entitlements, air-gapped files and limits are tested live.
+  # The model store starts empty on purpose: the licensed downloads are part
+  # of the test.
+  # -------------------------------------------------------------------------
+  licensing:
+    runs-on: gh-runner-l
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: java/jsyn-licensing
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install GStreamer runtime packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libgstreamer1.0-0 \
+            gstreamer1.0-plugins-base \
+            gstreamer1.0-plugins-good \
+            gstreamer1.0-plugins-bad \
+            gstreamer1.0-nice
+
+      - name: Set up Temurin 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Cache Gradle wrapper + caches
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-licensing-${{ hashFiles('java/jsyn-licensing/**/*.gradle*', 'java/jsyn-licensing/gradle/wrapper/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-licensing-
+
+      - name: run the tour
+        env:
+          SYNAUSON_LICENSE_KEY: ${{ secrets.LICENSING_TOUR_LICENSE_KEY }}
+          LANG: C.UTF-8
+        run: |
+          ./gradlew clean run --no-daemon --console=plain
 
   # -------------------------------------------------------------------------
   # Windows quickstart: build it and run all three examples against the
