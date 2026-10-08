@@ -48,17 +48,18 @@ public class JSynConfiguration {
      *
      * <p>Constructing the bean loads the native libraries via
      * {@link com.synauson.jsyn.internal.NativeLoader#load()}, runs a GStreamer
-     * sanity check, and initialises ONNX Runtime. None of this is reversible
-     * within the JVM lifetime; calling {@link JSyn#close()} (which Spring
-     * invokes at shutdown thanks to {@code destroyMethod = "close"}) tears
-     * everything down but a second {@link JSyn} cannot be constructed afterwards.
+     * sanity check, and initialises ONNX Runtime. The libraries stay loaded for
+     * the JVM's lifetime; {@link JSyn#close()} (which Spring invokes at shutdown
+     * thanks to {@code destroyMethod = "close"}) shuts the runtime down, and a
+     * later {@link JSyn} reuses the loaded libraries. Keep at most one active
+     * at a time.
      *
      * <p>Configuration values come from {@link TestbedProperties}. The
      * license key is exchanged for a signed license file (cached in the state
      * directory) before the constructor returns; a missing or refused key makes
-     * it throw. The RTP port range matters for SIP participants (unused in this
-     * testbed, but JSynConfig requires a value), the STUN server matters for
-     * the WebRTC ICE exchange.
+     * it throw. The RTP port range is for SIP participants (unused in this
+     * testbed, which sets it anyway to show where it goes); the STUN server
+     * matters for the WebRTC ICE exchange.
      *
      * @param props testbed properties; injected by Spring
      * @return the JSyn runtime, ready to start conferences
@@ -71,7 +72,7 @@ public class JSynConfiguration {
                 .licenseKey(blankToNull(props.licenseKey()))
                 .modelStore(blankToNull(props.modelStore()))
                 .stateDir(blankToNull(props.stateDir()))
-                .rtpPortMin(40000)       // unused for WebRTC, but JSynConfig requires it
+                .rtpPortMin(40000)       // SIP only; unused by this WebRTC testbed
                 .rtpPortMax(40199)
                 .webrtcStunServer(props.stunServer())
                 .webrtcJitterBufferMs(200)
