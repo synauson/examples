@@ -104,7 +104,9 @@ jobs:
           load: true
           tags: synauson-webrtc-testbed:ci
           cache-from: type=gha
-          cache-to: type=gha,mode=max
+          # Only main writes layers; branches read them. A branch's own
+          # layers would only take cache budget until the branch is landed.
+          cache-to: ${{ github.ref == 'refs/heads/main' && 'type=gha,mode=max' || '' }}
 
       - name: start the image and wait until healthy
         env:
@@ -194,28 +196,24 @@ jobs:
           sparse-checkout: synauson-server/tests/fixtures/short_speech.wav
           sparse-checkout-cone-mode: false
 
-      - name: Cache GStreamer installer download
-        id: cache-gst
-        uses: actions/cache@v4
-        with:
-          path: ~/gst-runtime.msi
-          key: win-gst-runtime-1.26.7-v1
-
-      - name: Download GStreamer runtime MSI (cache miss only)
-        if: steps.cache-gst.outputs.cache-hit != 'true'
-        working-directory: ${{ github.workspace }}
-        run: |
-          Invoke-WebRequest `
-            -Uri "https://gstreamer.freedesktop.org/data/pkg/windows/1.26.7/msvc/gstreamer-1.0-msvc-x86_64-1.26.7.msi" `
-            -OutFile (Join-Path $HOME 'gst-runtime.msi')
-
-      - name: Install GStreamer runtime (system-wide, silent)
+      # gh-runner-w is one persistent machine, so GStreamer normally stays
+      # installed. The installer is downloaded only when it is missing, into
+      # the runner's tool cache rather than the Actions cache.
+      - name: Install GStreamer runtime (if missing)
         working-directory: ${{ github.workspace }}
         run: |
           if (Test-Path 'C:\gstreamer\1.0\msvc_x86_64\bin\gstreamer-1.0-0.dll') {
             Write-Host "GStreamer already installed, skipping."
           } else {
-            $msi = Join-Path $HOME 'gst-runtime.msi'
+            $dl = Join-Path $env:RUNNER_TOOL_CACHE 'synauson-downloads'
+            New-Item -ItemType Directory -Force -Path $dl | Out-Null
+            $msi = Join-Path $dl 'gstreamer-1.0-msvc-x86_64-1.26.7.msi'
+            if (-not (Test-Path $msi)) {
+              Invoke-WebRequest `
+                -Uri "https://gstreamer.freedesktop.org/data/pkg/windows/1.26.7/msvc/gstreamer-1.0-msvc-x86_64-1.26.7.msi" `
+                -OutFile "$msi.part"
+              Move-Item -Force "$msi.part" $msi
+            }
             $proc = Start-Process msiexec.exe -Wait -PassThru -ArgumentList @(
               '/i', $msi, '/quiet', '/norestart', 'ADDLOCAL=ALL', 'INSTALLDIR=C:\gstreamer\')
             if ($proc.ExitCode -ne 0) { throw "msiexec failed with exit code $($proc.ExitCode)" }
@@ -236,16 +234,7 @@ jobs:
           distribution: temurin
           java-version: '11'
 
-      - name: Cache Gradle wrapper + caches
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: ${{ runner.os }}-gradle-quickstart-${{ hashFiles('java/jsyn-windows-quickstart/**/*.gradle*', 'java/jsyn-windows-quickstart/gradle/wrapper/gradle-wrapper.properties') }}
-          restore-keys: |
-            ${{ runner.os }}-gradle-quickstart-
-
+      # No Gradle cache: ~/.gradle persists on gh-runner-w.
       - name: build
         run: ./gradlew.bat build --no-daemon --console=plain
 
