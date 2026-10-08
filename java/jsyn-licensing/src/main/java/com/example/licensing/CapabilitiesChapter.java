@@ -5,7 +5,6 @@ import com.synauson.jsyn.JSyn;
 import com.synauson.jsyn.NativeAudioFormat;
 import com.synauson.jsyn.exception.PermissionDeniedException;
 import com.synauson.jsyn.participant.Conference;
-import com.synauson.jsyn.participant.NativeParticipant;
 import com.synauson.jsyn.spec.NativeParticipantSpec;
 import com.synauson.jsyn.spec.TurnDetectionConfig;
 import com.synauson.jsyn.spec.VadConfig;
@@ -22,8 +21,8 @@ import static com.example.licensing.Tour.refused;
 import static com.example.licensing.Tour.step;
 
 /**
- * Chapter 3: capabilities. Each AI feature is a capability the license includes or
- * doesn't; each participant it runs on is one stream of it.
+ * Chapter 3: capabilities. The license decides which AI features a participant may use,
+ * and each participant a feature runs on counts as one stream of it.
  */
 final class CapabilitiesChapter {
 
@@ -54,12 +53,11 @@ final class CapabilitiesChapter {
 
     static void run(Tour tour) throws InterruptedException {
         Tour.chapter("3 · Capabilities",
-                "A capability is an AI feature a license includes or doesn't: FEATURE_VAD "
-                + "(voice activity detection) and FEATURE_TURN_DETECTION (turn detection). Conferencing "
-                + "itself is in every license. Asking for a capability the license lacks throws "
-                + "PermissionDeniedException naming the code. Each participant a capability runs on "
-                + "is one stream of it, and a conference with any AI stream is an AI conference; "
-                + "licenses can limit both.");
+                "The AI features are capabilities: FEATURE_VAD (voice activity detection) and "
+                + "FEATURE_TURN_DETECTION (turn detection). Every license includes conferencing. Asking "
+                + "for a capability the license lacks throws PermissionDeniedException naming the "
+                + "code. Each participant a capability runs on is one stream of it, and a conference "
+                + "with at least one AI stream is an AI conference. Licenses can limit both.");
 
         if (!Files.isRegularFile(tour.dir("state/online").resolve(OnlineChapter.CACHE_FILE))) {
             throw new Tour.TourFailure("run the online chapter first: this one reuses its license and models");
@@ -77,7 +75,7 @@ final class CapabilitiesChapter {
                 Capabilities caps = jsyn.capabilities();
                 expect(caps.aiConferences.inUse == 0, "a participant without AI uses no AI capacity");
                 ok("joined; AI conferences " + CapabilitiesPrinter.usage(caps.aiConferences)
-                        + ". Audio alone never touches entitlements or AI limits.");
+                        + ". A participant without AI needs no capability and counts toward no AI limit.");
 
                 step("Turn detection (VAD + turn detection on one participant)");
                 boolean turnEntitled = Tour.capability(caps, TURN_DETECTION).entitled;
@@ -91,10 +89,11 @@ final class CapabilitiesChapter {
                     expect(caps.aiConferences.inUse == 1, "the conference now counts as an AI conference");
                     ok(TURN_DETECTION + " streams " + CapabilitiesPrinter.usage(Tour.capability(caps, TURN_DETECTION).streams));
                     ok(VAD + " streams " + CapabilitiesPrinter.usage(Tour.capability(caps, VAD).streams)
-                            + ": turn detection includes the VAD that drives it, free");
+                            + ": the VAD inside turn detection is included");
                     ok("AI conferences " + CapabilitiesPrinter.usage(caps.aiConferences));
                 } else {
-                    PermissionDeniedException e = expectDenied(() -> conference.addNativeParticipant("turn", withTurnDetection()));
+                    PermissionDeniedException e = Tour.expectThrows(PermissionDeniedException.class,
+                            () -> conference.addNativeParticipant("turn", withTurnDetection()));
                     expect(e.getMessage().contains(TURN_DETECTION), "the refusal names " + TURN_DETECTION);
                     refused(e);
                     ok("refused: this license doesn't include turn detection");
@@ -111,7 +110,8 @@ final class CapabilitiesChapter {
                     ok("AI conferences still " + CapabilitiesPrinter.usage(caps.aiConferences)
                             + ": the AI-conference count is per conference, not per stream");
                 } else {
-                    PermissionDeniedException e = expectDenied(() -> conference.addNativeParticipant("vad", withVad()));
+                    PermissionDeniedException e = Tour.expectThrows(PermissionDeniedException.class,
+                            () -> conference.addNativeParticipant("vad", withVad()));
                     expect(e.getMessage().contains(VAD), "the refusal names " + VAD);
                     refused(e);
                     ok("refused: this license doesn't include VAD on its own"
@@ -126,28 +126,13 @@ final class CapabilitiesChapter {
                                 && Tour.capability(caps, VAD).streams.inUse == 0
                                 && Tour.capability(caps, TURN_DETECTION).streams.inUse == 0,
                         "removing the AI participants releases their streams and the AI conference");
-                ok("streams and the AI conference are released the moment their participants go; "
-                        + "the conference itself (still running with 'plain') counts only as a conference");
-                note("An entitlement added to or removed from your license reaches running "
-                        + "runtimes at their next renewal (within about a day), and affects only "
-                        + "participants added after it.");
+                ok("their streams and the AI conference are released at once; the conference, "
+                        + "still running with 'plain', now counts only as a conference");
+                note("A change to your license's capabilities reaches running runtimes at their "
+                        + "next renewal, within about a day, and applies to participants added after it.");
             } finally {
                 Tour.closeAll(open);
             }
-        }
-    }
-
-    interface Call {
-        NativeParticipant run();
-    }
-
-    static PermissionDeniedException expectDenied(Call call) {
-        try {
-            NativeParticipant p = call.run();
-            p.close();
-            throw new Tour.TourFailure("expected PermissionDeniedException, but the participant was added");
-        } catch (PermissionDeniedException e) {
-            return e;
         }
     }
 }

@@ -6,21 +6,18 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * A guided, self-checking tour of jsyn licensing.
+ * A tour of jsyn licensing that checks what it shows.
  *
- * <p>Each chapter starts real jsyn runtimes, does what an application would do, and
- * checks every claim it prints; if the runtime behaves differently, the tour exits
- * non-zero. Read the source next to the output: {@link StartupChapter},
- * {@link OnlineChapter}, {@link CapabilitiesChapter}, {@link AirGappedChapter},
- * {@link LimitsChapter}, plus {@link LicenseHealth} to copy into your application.
+ * <p>Each chapter starts real runtimes, does what an application would do, and checks
+ * each statement it prints. If the runtime behaves differently, the tour exits non-zero.
+ * The chapters are {@link StartupChapter}, {@link OnlineChapter},
+ * {@link CapabilitiesChapter}, {@link AirGappedChapter} and {@link LimitsChapter}.
  *
- * <p>Run all chapters in order with {@code ./gradlew run}, or some of them with
- * {@code ./gradlew run --args="limits"}. The online chapter checks out the license
- * file and downloads the models the later chapters reuse.
- *
- * <p><b>Prerequisites:</b> {@code SYNAUSON_LICENSE_KEY} (a free-tier key works),
- * GStreamer 1.26 and HTTPS access to {@code license.synauson.com} and
- * {@code dl.synauson.com}.
+ * <p>Run every chapter with {@code ./gradlew run}, or some with
+ * {@code ./gradlew run --args="limits"}. The online chapter checks out the license file
+ * and downloads the models that later chapters reuse. The tour needs
+ * {@code SYNAUSON_LICENSE_KEY} (a free-tier key works), GStreamer 1.26, and HTTPS access
+ * to {@code license.synauson.com} and {@code dl.synauson.com}.
  */
 public final class LicensingTour {
 
@@ -65,6 +62,6 @@ public final class LicensingTour {
                 System.exit(1);
             }
         }
-        System.out.println("\n✓ Tour complete: every claim above was checked against a live runtime.");
+        System.out.println("\n✓ Tour complete. Every statement above was checked against a live runtime.");
     }
 }

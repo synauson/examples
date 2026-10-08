@@ -12,6 +12,7 @@ import java.nio.file.Path;
 import java.time.Duration;
 import java.util.Comparator;
 import java.util.Deque;
+import java.util.concurrent.Callable;
 import java.util.stream.Stream;
 
 /**
@@ -102,6 +103,28 @@ final class Tour {
             }
             Thread.sleep(500);
         }
+    }
+
+    /**
+     * Run {@code call} expecting it to throw {@code type}, and return what it threw. If it
+     * succeeds instead, close whatever it started and fail the tour.
+     */
+    static <E extends Exception> E expectThrows(Class<E> type, Callable<?> call) {
+        Object started;
+        try {
+            started = call.call();
+        } catch (Exception e) {
+            if (type.isInstance(e)) return type.cast(e);
+            throw new TourFailure("expected " + type.getSimpleName() + ", got " + e);
+        }
+        if (started instanceof AutoCloseable c) {
+            try {
+                c.close();
+            } catch (Exception ignored) {
+                // The tour is failing anyway.
+            }
+        }
+        throw new TourFailure("expected " + type.getSimpleName() + ", but the call succeeded");
     }
 
     /** Close what a chapter opened, newest first: participants before their conference. */

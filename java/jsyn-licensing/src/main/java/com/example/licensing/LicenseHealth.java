@@ -9,21 +9,19 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * A health verdict for the licensing side of a jsyn runtime, built from
- * {@link com.synauson.jsyn.JSyn#capabilities()}. Copy it into your application and
- * serve it from your health endpoint or turn it into metrics.
+ * The licensing health of a jsyn runtime, from {@link com.synauson.jsyn.JSyn#capabilities()}.
+ * Copy it into your application and serve it from a health endpoint or as metrics.
  *
  * <ul>
- *   <li>{@code FAILING}: the licensing server rejected the license. Nothing new starts
- *       (live calls carry on), and it won't recover without action.
- *   <li>{@code DEGRADED}: working, but heading for trouble or already limited. The
- *       server has been unreachable, the license file is close to expiring, or a limit
- *       is fully used.
+ *   <li>{@code FAILING}: the licensing server refused the license. Live calls carry on,
+ *       but nothing new starts until the license is fixed.
+ *   <li>{@code DEGRADED}: still working, but the server has been unreachable, the license
+ *       file expires soon, or a limit is fully used.
  *   <li>{@code OK}: everything else.
  * </ul>
  *
- * <p>{@code capabilities()} reads state the runtime already holds and never touches
- * the network, so polling it every few seconds is fine.
+ * <p>{@code capabilities()} reads state the runtime already holds and never touches the
+ * network, so polling it every few seconds is fine.
  */
 record LicenseHealth(Status status, List<String> reasons) {
 
