@@ -134,11 +134,11 @@ server, which protects a first start during an outage.
 ## Running the tour
 
 You need `SYNAUSON_LICENSE_KEY` (a free-tier key works) and HTTPS access to
-`license.synauson.com` and `dl.synauson.com`. In a container, with podman or docker:
+`license.synauson.com` and `dl.synauson.com`. In a container, with Docker:
 
 ```bash
-podman build -t jsyn-licensing-tour .
-podman run --rm -e SYNAUSON_LICENSE_KEY -v jsyn-licensing-tour:/tour jsyn-licensing-tour
+docker build -t jsyn-licensing-tour .
+docker run --rm -e SYNAUSON_LICENSE_KEY -v jsyn-licensing-tour:/tour jsyn-licensing-tour
 ```
 
 On the host, with Java 21 and GStreamer 1.26 (`gradlew.bat` on Windows):

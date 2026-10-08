@@ -1,7 +1,7 @@
 # jsyn licensing tour. Run `just` (or `just --list`) to see all recipes.
 #
 # Needs SYNAUSON_LICENSE_KEY in the environment (a free-tier key works).
-# On the host: Java 21 and GStreamer 1.26. In the container: podman only.
+# On the host: Java 21 and GStreamer 1.26. In the container: Docker only.
 
 image := "jsyn-licensing-tour:dev"
 
@@ -15,11 +15,11 @@ tour *chapters:
 
 # Build the container image (JDK 21 + GStreamer 1.26 from debian:trixie)
 image:
-    podman build -t {{image}} .
+    docker build -t {{image}} .
 
 # Run the tour in the container; the models volume survives between runs
 tour-container *chapters: image
-    podman run --rm \
+    docker run --rm \
         -e SYNAUSON_LICENSE_KEY \
         -v jsyn-licensing-tour:/tour \
         {{image}} {{chapters}}
@@ -27,4 +27,4 @@ tour-container *chapters: image
 # Delete the tour's files (models, state directories, license files)
 clean:
     ./gradlew --no-daemon clean
-    podman volume rm -f jsyn-licensing-tour 2>/dev/null || true
+    docker volume rm -f jsyn-licensing-tour 2>/dev/null || true
