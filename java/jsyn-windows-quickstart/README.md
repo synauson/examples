@@ -76,11 +76,12 @@ repositories {
 dependencies {
     implementation("com.synauson:jsyn:1.5.0")
     // synauson_jni.dll and onnxruntime.dll (ONNX Runtime is bundled; nothing to install)
-    runtimeOnly("com.synauson:jsyn-natives-windows:1.5.0")
+    runtimeOnly("com.synauson:jsyn-natives-windows:1.5.1")
 }
 ```
 
-Keep `jsyn` and `jsyn-natives-windows` at the same version. Then start from whichever of the
+Use the newest `jsyn-natives-windows` that jsyn is tested with; an engine-only fix ships as a
+natives release without a new jsyn. Then start from whichever of the
 three programs is closest to what you need.
 
 ## License

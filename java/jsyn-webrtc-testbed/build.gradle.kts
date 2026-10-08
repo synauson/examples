@@ -22,9 +22,12 @@ repositories {
     }
 }
 
-// JSyn coordinates. jsyn and jsyn-natives-linux are released together; keep them equal.
+// JSyn coordinates. jsyn and jsyn-natives-linux are versioned separately: an
+// engine-only fix is a natives release with no new jsyn. publish-webrtc-testbed.yml
+// greps the natives variable below by name, so keep its name and don't mention it
+// above its line.
 val jsynVersion = "1.5.0"
-val jsynNativesLinuxVersion = "1.5.0"
+val jsynNativesLinuxVersion = "1.5.1"
 
 dependencies {
     implementation("org.springframework.boot:spring-boot-starter-web")

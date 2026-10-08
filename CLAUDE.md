@@ -43,10 +43,12 @@ When the host lacks them, use the container recipes.
 
 ## Rules
 
-- Examples use the released `com.synauson:jsyn` and the matching `jsyn-natives-*` from
-  `https://maven.synauson.com/releases` (no credentials). The version is pinned in each
+- Examples use the released `com.synauson:jsyn` and `jsyn-natives-*` from
+  `https://maven.synauson.com/releases` (no credentials). Both versions are pinned in each
   example's `build.gradle.kts` and repeated in the quickstart README's dependency snippet.
-  Bump every example and that snippet together, and keep jsyn and its natives equal.
+  Bump every example and that snippet together. jsyn and the natives drift: an
+  engine-only fix is a natives release with no jsyn release, so pin the newest natives
+  that jsyn's own `gradle.properties` (`jsynNativesVersion`) tests.
 - `publish-webrtc-testbed.yml` reads the natives version by grepping `jsynNativesLinuxVersion`
   in the testbed's `build.gradle.kts`. Don't rename or inline that `val`.
 - Every runtime needs `SYNAUSON_LICENSE_KEY`; there is no keyless mode.
