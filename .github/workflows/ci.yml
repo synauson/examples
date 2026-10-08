@@ -159,7 +159,7 @@ jobs:
   # released jsyn, as a developer following the README would.
   # -------------------------------------------------------------------------
   quickstart:
-    runs-on: [self-hosted, Windows, X64, synauson]
+    runs-on: gh-runner-w
     timeout-minutes: 30
     defaults:
       run:
