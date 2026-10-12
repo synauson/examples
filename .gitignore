@@ -1,0 +1,8 @@
+# direnv environment cache
+.direnv/
+
+# Eclipse/Java IDE artifacts
+.classpath
+.project
+.settings/
+bin/

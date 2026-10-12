@@ -1,0 +1,46 @@
+package com.synauson.testbed.config;
+
+import org.springframework.boot.context.properties.ConfigurationProperties;
+
+/**
+ * Typed configuration for the testbed.
+ *
+ * <p>Bound to the {@code testbed.*} prefix; values come from {@code application.yml}
+ * and can be overridden with environment variables (Spring Boot's relaxed binding
+ * maps {@code TESTBED_MODEL_STORE} to {@code testbed.model-store}).
+ *
+ * <p>Blank string fields mean "use JSyn's default". Numeric fields use boxed types
+ * ({@code Float}, {@code Integer}) so they are nullable, but every numeric field carries
+ * a sensible default in {@code application.yml} so null values do not occur under
+ * normal deployment.
+ *
+ * @param licenseKey      Synauson license key; blank reads {@code SYNAUSON_LICENSE_KEY}.
+ * @param modelStore      Directory the runtime downloads the licensed ONNX models into;
+ *                        passed to {@link com.synauson.jsyn.JSynConfig.Builder#modelStore(String)}.
+ * @param stateDir        Directory for the cached license file; passed to
+ *                        {@link com.synauson.jsyn.JSynConfig.Builder#stateDir(String)}.
+ * @param modelWaitSeconds How long startup waits for the licensed models to download.
+ * @param conferenceId    The single fixed conference ID the testbed creates on boot.
+ * @param stunServer      STUN URI for ICE negotiation; default
+ *                        {@code stun://stun.l.google.com:19302}. Public STUN is fine
+ *                        for the host-networking demo mode.
+ * @param vadThreshold    Override for VAD's speech-vs-silence threshold (0–1).
+ * @param vadMinSilenceMs Override for the minimum silence before {@code SpeechEnd}.
+ * @param vadMinSpeechMs  Override for the minimum speech before {@code SpeechStart}.
+ * @param turnDetectionBufferedSamples       Override for the audio (16 kHz samples) turn detection waits for before it decides.
+ * @param turnDetectionConfidenceThreshold   Override for turn detection's "turn complete" threshold.
+ */
+@ConfigurationProperties(prefix = "testbed")
+public record TestbedProperties(
+    String licenseKey,
+    String modelStore,
+    String stateDir,
+    Integer modelWaitSeconds,
+    String conferenceId,
+    String stunServer,
+    Float vadThreshold,
+    Integer vadMinSilenceMs,
+    Integer vadMinSpeechMs,
+    Integer turnDetectionBufferedSamples,
+    Float turnDetectionConfidenceThreshold
+) {}

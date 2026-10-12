@@ -1,0 +1,4 @@
+.gradle/
+build/
+# What the commands write: call.wav, speech.wav and your own outputs
+*.wav

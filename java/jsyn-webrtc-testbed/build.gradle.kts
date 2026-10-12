@@ -1,0 +1,101 @@
+plugins {
+    java
+    id("org.springframework.boot") version "3.5.0"
+    id("io.spring.dependency-management") version "1.1.7"
+}
+
+group = "com.synauson"
+version = "1.0.0-SNAPSHOT"
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+repositories {
+    mavenCentral()
+    // The public Synauson Maven repository; no credentials needed.
+    maven {
+        name = "Synauson"
+        url = uri("https://maven.synauson.com/releases")
+    }
+}
+
+// JSyn coordinates. jsyn and jsyn-natives-linux are versioned separately: an
+// engine-only fix is a natives release with no new jsyn. publish-webrtc-testbed.yml
+// greps the natives variable below by name, so keep its name and don't mention it
+// above its line.
+val jsynVersion = "1.6.0"
+val jsynNativesLinuxVersion = "1.7.1"
+
+dependencies {
+    implementation("org.springframework.boot:spring-boot-starter-web")
+    implementation("org.springframework.boot:spring-boot-starter-websocket")
+    implementation("org.springframework.boot:spring-boot-starter-actuator")
+    annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
+
+    // JSyn — pure Java API for the Synauson media server.
+    implementation("com.synauson:jsyn:$jsynVersion")
+    // Platform-specific native libraries (libsynauson_jni.so + libonnxruntime.so).
+    // NativeLoader inside JSyn extracts these from the classpath at JVM startup.
+    runtimeOnly("com.synauson:jsyn-natives-linux:$jsynNativesLinuxVersion")
+
+    testImplementation("org.springframework.boot:spring-boot-starter-test")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+}
+
+tasks.withType<Test> {
+    useJUnitPlatform()
+    // GStreamer and ONNX Runtime are process-global singletons, so each test
+    // class gets its own JVM and a fresh native runtime.
+    setForkEvery(1)
+    maxParallelForks = 1
+}
+
+// ---------------------------------------------------------------------------
+// Frontend build wiring.
+//
+// Vite's outDir is ../src/main/resources/static so the production bundle lands
+// directly on Spring Boot's classpath. The Exec task declares its inputs and
+// outputs so Gradle skips `npm run build` when nothing has changed in the
+// frontend source tree.
+//
+// processResources depends on frontendBuild, which means `./gradlew bootJar`
+// transparently produces a single fat jar containing the compiled SPA.
+// ---------------------------------------------------------------------------
+val frontendDir = layout.projectDirectory.dir("frontend")
+val frontendStaticOut = layout.projectDirectory.dir("src/main/resources/static")
+
+val frontendInstall = tasks.register<Exec>("frontendInstall") {
+    workingDir = frontendDir.asFile
+    inputs.files("frontend/package.json", "frontend/package-lock.json")
+    outputs.dir("frontend/node_modules")
+    commandLine("npm", "ci", "--no-audit", "--no-fund")
+}
+
+val frontendBuild = tasks.register<Exec>("frontendBuild") {
+    dependsOn(frontendInstall)
+    workingDir = frontendDir.asFile
+    inputs.dir("frontend/src")
+    inputs.files(
+        "frontend/package.json",
+        "frontend/package-lock.json",
+        "frontend/vite.config.ts",
+        "frontend/tailwind.config.js",
+        "frontend/postcss.config.js",
+        "frontend/tsconfig.json",
+        "frontend/index.html",
+    )
+    outputs.dir(frontendStaticOut)
+    commandLine("npm", "run", "build")
+}
+
+tasks.named("processResources") { dependsOn(frontendBuild) }
+
+// Allow `./gradlew bootRun` against a stale frontend bundle (no incremental
+// build) by adding a -P flag. Saves a few seconds when iterating on Java only.
+if (project.hasProperty("skipFrontend")) {
+    tasks.named("frontendBuild") { enabled = false }
+    tasks.named("frontendInstall") { enabled = false }
+}

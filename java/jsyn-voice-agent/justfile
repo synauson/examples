@@ -1,0 +1,38 @@
+# jsyn voice agent example. Run `just` (or `just --list`) to see all recipes.
+#
+# Needs SYNAUSON_LICENSE_KEY in the environment.
+# On the host: Java 21 and GStreamer 1.24 or 1.26. In the container: Docker only.
+
+image := "jsyn-voice-agent:dev"
+
+# Pass recipe arguments to the shell as "$@", so quoted text stays one argument.
+set positional-arguments
+
+# List all available recipes
+default:
+    @just --list
+
+# The voice agent answering a simulated caller (--sip, --late-join <seconds>); writes call.wav
+agent *args:
+    ./gradlew --no-daemon --console=plain run --args="agent $*"
+
+# Speech to text on a 16-bit WAV file
+transcribe wav:
+    ./gradlew --no-daemon --console=plain run --args="transcribe '{{absolute_path(wav)}}'"
+
+# Text to speech into a WAV file
+speak text out="speech.wav":
+    ./gradlew --no-daemon --console=plain run --args="speak '{{text}}' '{{absolute_path(out)}}'"
+
+# Build the container image (JDK 21 + GStreamer 1.26 from debian:trixie)
+image:
+    docker build -t {{image}} .
+
+# Run a command in the container (agent, or transcribe/speak with paths under this directory)
+container *args: image
+    docker run --rm -e SYNAUSON_LICENSE_KEY -v jsyn-voice-agent:/data -v "$PWD:/work" -w /work {{image}} "$@"
+
+# Delete the downloaded models and the cached license
+clean:
+    ./gradlew --no-daemon clean
+    docker volume rm -f jsyn-voice-agent 2>/dev/null || true

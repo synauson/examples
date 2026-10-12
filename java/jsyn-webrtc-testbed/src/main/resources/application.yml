@@ -1,0 +1,38 @@
+# Spring server config.
+server:
+  port: ${TESTBED_SERVER_PORT:8080}
+
+spring:
+  application:
+    name: synauson-webrtc-testbed
+
+# Testbed-specific settings.
+# Each field maps to a record component in TestbedProperties; env vars
+# in the form TESTBED_FOO_BAR resolve to testbed.foo-bar via Spring's
+# relaxed binding.
+testbed:
+  # Blank reads SYNAUSON_LICENSE_KEY, the usual way to pass the key.
+  license-key: ${TESTBED_LICENSE_KEY:}
+  # The runtime downloads the models here and caches the license file in
+  # the state directory. Mount both as volumes so restarts reuse them.
+  model-store: ${TESTBED_MODEL_STORE:/var/lib/synauson/models}
+  state-dir: ${TESTBED_STATE_DIR:/var/lib/synauson/state}
+  # How long startup waits for the model downloads before running without them.
+  model-wait-seconds: ${TESTBED_MODEL_WAIT_SECONDS:120}
+  conference-id: ${TESTBED_CONFERENCE_ID:testbed}
+  stun-server: ${TESTBED_STUN_SERVER:stun://stun.l.google.com:19302}
+  # VAD settings. min-silence-ms decides how soon a speech end is reported, so it
+  # is kept low here to make the events feel immediate.
+  vad-threshold: ${TESTBED_VAD_THRESHOLD:0.5}
+  vad-min-silence-ms: ${TESTBED_VAD_MIN_SILENCE_MS:100}
+  vad-min-speech-ms: ${TESTBED_VAD_MIN_SPEECH_MS:250}
+  # Turn-detection settings. The model's probabilities mostly fall below 0.2 for a
+  # pause mid-turn and above 0.65 at a turn's end, so 0.65 marks a turn complete.
+  turn-detection-buffered-samples: ${TESTBED_TURN_DETECTION_BUFFERED_SAMPLES:160}
+  turn-detection-confidence-threshold: ${TESTBED_TURN_DETECTION_CONFIDENCE_THRESHOLD:0.65}
+
+logging:
+  level:
+    com.synauson: DEBUG
+  pattern:
+    console: "%d{HH:mm:ss.SSS} %-5level %logger{36} : %msg%n"

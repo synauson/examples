@@ -1,0 +1,110 @@
+name: publish-webrtc-testbed
+
+# A release tag in the public repository publishes the image. The release was
+# exported from a commit whose CI already built, started and health-checked it.
+on:
+  push:
+    tags: ['v*']
+permissions:
+  contents: read
+env:
+  # Pushed to, and pulled publicly from, cr.synauson.com.
+  IMAGE: cr.synauson.com/synauson/synauson-webrtc-testbed
+  REGCTL_VERSION: v0.11.6
+  REGCTL_SHA256: 8e0e62a497fcdb8048d18aa927a139613176ba0531f412bc541044e28f9856bd
+
+jobs:
+  publish:
+    # Only the public repository publishes.
+    if: github.repository == 'synauson/examples'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      id-token: write       # the Sigstore certificate for the attestation
+      attestations: write   # stores it with GitHub
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Wait for jsyn-natives-linux to be published
+        run: |
+          VERSION=$(grep 'jsynNativesLinuxVersion' java/jsyn-webrtc-testbed/build.gradle.kts \
+            | head -1 | grep -oP '"[^"]+"' | tr -d '"')
+          POM="https://maven.synauson.com/releases/com/synauson/jsyn-natives-linux/${VERSION}/jsyn-natives-linux-${VERSION}.pom"
+          for i in $(seq 1 20); do
+            if curl -sfI "$POM" >/dev/null; then
+              echo "Found com.synauson:jsyn-natives-linux:${VERSION}."
+              exit 0
+            fi
+            echo "Attempt $i/20: not yet available, waiting 30s..."
+            sleep 30
+          done
+          echo "::error::com.synauson:jsyn-natives-linux:${VERSION} not found after 10 minutes"
+          exit 1
+
+      # `latest` follows the highest release (vX.Y.Z, or a re-release vX.Y.Z-N), so
+      # a re-release for an older jsyn never moves it back.
+      - name: Compute image tags
+        id: tags
+        run: |
+          VERSION=${GITHUB_REF_NAME#v}
+          echo "primary=${IMAGE}:${VERSION}" >> "$GITHUB_OUTPUT"
+          top=$(git ls-remote --tags --refs origin 'v*' | sed 's|.*refs/tags/||' \
+            | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9]+)?$' | sort -V | tail -1)
+          if [ "$top" = "$GITHUB_REF_NAME" ]; then
+            echo "latest=${IMAGE}:latest" >> "$GITHUB_OUTPUT"
+          else
+            echo "$top is newer than $GITHUB_REF_NAME: latest stays where it is"
+          fi
+
+      # The OCI layout is pushed with regctl below, so the build only exports it.
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: java/jsyn-webrtc-testbed/Dockerfile
+          platforms: linux/amd64
+          push: false
+          tags: testbed:ci
+          outputs: type=oci,dest=${{ runner.temp }}/image,tar=false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # cr.synauson.com refuses request bodies over 100 MB, and docker push
+      # sends each layer in one request (the apt layer is over 300 MB), so
+      # regctl uploads in 50 MiB chunks.
+      - name: Install regctl
+        run: |
+          curl -fsSL -o "$RUNNER_TEMP/regctl" \
+            "https://github.com/regclient/regclient/releases/download/$REGCTL_VERSION/regctl-linux-amd64"
+          echo "$REGCTL_SHA256  $RUNNER_TEMP/regctl" | sha256sum -c -
+          chmod +x "$RUNNER_TEMP/regctl"
+
+      - name: Push
+        id: push
+        env:
+          REGCTL_CONFIG: ${{ runner.temp }}/regctl-config.json
+          REGISTRY_USER: ${{ secrets.REGISTRY_USER }}
+          REGISTRY_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
+          PRIMARY: ${{ steps.tags.outputs.primary }}
+          LATEST: ${{ steps.tags.outputs.latest }}
+        run: |
+          regctl="$RUNNER_TEMP/regctl"
+          printf '%s' "$REGISTRY_PASSWORD" |
+            "$regctl" registry login cr.synauson.com -u "$REGISTRY_USER" --pass-stdin
+          "$regctl" registry set cr.synauson.com --blob-chunk 52428800 --blob-max 52428800
+          for tag in "$PRIMARY" ${LATEST:+"$LATEST"}; do
+            "$regctl" image copy "ocidir://$RUNNER_TEMP/image:ci" "$tag"
+          done
+          digest=$("$regctl" image digest "$PRIMARY")
+          test -n "$digest"
+          echo "digest=$digest" >> "$GITHUB_OUTPUT"
+
+      # SLSA build provenance for the pushed image, signed through Sigstore and
+      # kept by GitHub (not pushed to the registry). Anyone checks it with
+      # `gh attestation verify oci://<image>:<version> -R synauson/examples`.
+      - name: Attest the image
+        uses: actions/attest@v4
+        with:
+          subject-name: ${{ env.IMAGE }}
+          subject-digest: ${{ steps.push.outputs.digest }}
