@@ -43,7 +43,7 @@ public record AiFeatures(boolean vad, boolean turnDetection) {
             caps = jsyn.capabilities();
         }
         for (Capabilities.ModelInfo m : caps.models) {
-            log.info("Model {} {}: {}{}", m.id, m.version, m.state,
+            log.info("Model {} {}: {}{}", m.id, m.variant, m.state,
                     m.detail == null ? "" : " (" + m.detail + ")");
         }
 

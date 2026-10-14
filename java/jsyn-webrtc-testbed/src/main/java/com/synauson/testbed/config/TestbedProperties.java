@@ -24,7 +24,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  * @param stunServer      STUN URI for ICE negotiation; default
  *                        {@code stun://stun.l.google.com:19302}. Public STUN is fine
  *                        for the host-networking demo mode.
- * @param vadThreshold    Override for VAD's speech-vs-silence threshold (0–1).
+ * @param vadThreshold    Override for VAD's speech-vs-silence threshold, above 0 and below 1.
  * @param vadMinSilenceMs Override for the minimum silence before {@code SpeechEnd}.
  * @param vadMinSpeechMs  Override for the minimum speech before {@code SpeechStart}.
  * @param turnDetectionBufferedSamples       Override for the audio (16 kHz samples) turn detection waits for before it decides.

@@ -21,11 +21,13 @@ final class CapabilitiesPrinter {
 
         String overdraft = caps.overdraft == 0 ? "no burst"
                 : String.format("a %.0f%% burst", caps.overdraft * 100);
-        row("AI sessions", sessions(caps.sessions) + " · counted on " + caps.limitsScope + ", " + overdraft);
+        row("AI sessions", pool(caps.sessions) + " · counted on " + caps.limitsScope + ", " + overdraft);
+        if (caps.conferences != null) row("conferences", pool(caps.conferences));
         Capabilities.UsageService u = caps.usageService;
         if (u != null) {
             row("usage service", u.contact + (u.share != null || u.shareCeiling != null ? " · " + share(u) : "")
-                    + (u.instances != null ? " · " + u.instances + " instance(s), " + u.poolInUse + " session(s) in use" : ""));
+                    + (u.instances != null ? " · " + u.instances + " instance(s), " + u.poolInUse + " session(s)"
+                            + (u.conferencePoolInUse != null ? " and " + u.conferencePoolInUse + " conference(s)" : "") + " in use" : ""));
             if (u.graceEnds != null) row("new calls stop at", u.graceEnds + " without a report getting through");
             if (u.problem != null) row("usage problem", u.problem);
         }
@@ -35,22 +37,28 @@ final class CapabilitiesPrinter {
                     : "NOT entitled");
         }
         for (Capabilities.ModelInfo m : caps.models) {
-            row("model " + m.id, m.version + " (release " + m.release + ") · " + m.state
+            row("model " + m.id, m.variant + " (release " + m.release + ") · " + m.state
                     + (m.detail != null ? " · " + m.detail : ""));
         }
         LicenseHealth health = LicenseHealth.of(caps, Instant.now());
         row("health", health.status() + (health.reasons().isEmpty() ? "" : " · " + String.join("; ", health.reasons())));
     }
 
-    /** This runtime's share of the license's pool, as the usage service leased it. */
+    /** This runtime's shares of the license's two pools, as the usage service leased them. */
     static String share(Capabilities.UsageService u) {
         if (u == null) return "no share (no usage service)";
-        if (u.share == null && u.shareCeiling == null) return "no share limit (unlimited)";
-        return "a share of " + u.share + " session(s)"
-                + (u.shareCeiling != null && !u.shareCeiling.equals(u.share) ? ", up to " + u.shareCeiling + " with the burst" : "");
+        return share(u.share, u.shareCeiling, "session(s)") + " and "
+                + share(u.conferenceShare, u.conferenceShareCeiling, "conference(s)");
     }
 
-    static String sessions(Capabilities.Sessions s) {
+    private static String share(Integer share, Integer ceiling, String unit) {
+        if (share == null && ceiling == null) return "no " + unit.replace("(s)", "") + " limit (unlimited)";
+        return "a share of " + share + " " + unit
+                + (ceiling != null && !ceiling.equals(share) ? ", up to " + ceiling + " with the burst" : "");
+    }
+
+    /** One of the license's pools on this runtime: AI sessions or conferences. */
+    static String pool(Capabilities.Pool s) {
         return s.inUse + " in use of " + (s.limit == null ? "unlimited" : s.limit)
                 + (s.ceiling != null && !s.ceiling.equals(s.limit) ? " (up to " + s.ceiling + " with the burst)" : "")
                 + ", " + s.level;

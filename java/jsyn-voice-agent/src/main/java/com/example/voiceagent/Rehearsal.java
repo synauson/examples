@@ -21,7 +21,7 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * Test scaffolding, not part of an agent: the simulated caller's voice. Its lines are
- * synthesised before the call by a second speaker, on a participant of its own in a
+ * synthesized before the call by a second speaker, on a participant of its own in a
  * conference of its own, so each line plays without a pause and the call's conference
  * starts only when the call does.
  */
@@ -54,7 +54,7 @@ final class Rehearsal {
                         AgentEvent e = spoken.poll(20, TimeUnit.MILLISECONDS);
                         done = e instanceof AgentEvent.UtteranceDone d && d.utteranceId.equals(id);
                         if (e instanceof AgentEvent.UtteranceFailed f) {
-                            throw new IllegalStateException("couldn't synthesise a line: " + f.message);
+                            throw new IllegalStateException("couldn't synthesize a line: " + f.message);
                         }
                         int n;
                         while ((n = voice.read(buffer, 0, buffer.length)) > 0) {

@@ -1,0 +1,31 @@
+# The Synauson server and the voice agent, on one network:
+#
+#   docker compose up --build --exit-code-from agent
+#
+# Needs SYNAUSON_LICENSE_KEY in the environment. CALLER=file
+# has the server play the caller's lines from files instead of a SIP call.
+services:
+  synauson:
+    # The agent needs server 1.8.0 or newer: older servers don't serve its API.
+    image: cr.synauson.com/synauson/synauson-server:1.8.0
+    # Eager end of turn on participants with speech to text needs --stt-eager.
+    command: ["--listen", "0.0.0.0:50051", "--stt-eager", "true"]
+    environment:
+      - SYNAUSON_LICENSE_KEY
+    volumes:
+      - models:/var/lib/synauson/models  # downloaded once, about 1 GB
+      - state:/var/lib/synauson/state    # the cached license and model timings
+      - ./caller:/caller:ro              # the caller's lines, for CALLER=file
+
+  agent:
+    build: .
+    command: ["--server", "synauson:50051", "--caller", "${CALLER:-sip}"]
+    depends_on:
+      - synauson
+    working_dir: /work
+    volumes:
+      - .:/work  # call.wav, what the SIP caller heard, lands here
+
+volumes:
+  models:
+  state:

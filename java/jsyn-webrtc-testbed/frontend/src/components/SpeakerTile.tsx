@@ -125,7 +125,7 @@ export function SpeakerTile({ participant, status, levels, seed }: {
         flexDirection: 'column',
         gap: 12,
       }}
-      aria-label={`${participant.name} — ${status}`}
+      aria-label={`${participant.name}, ${status}`}
     >
       {/* Row 1: identity + inline waveform */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -220,7 +220,7 @@ export function SoloPeerCard({ iceConnectionState, remoteCount, inboundTracks, o
 
       {/* Footer */}
       <div style={{ borderTop: '1px dashed rgba(255,255,255,0.10)', paddingTop: 6, fontSize: 10.5, color: '#9aa0a6' }} className="font-sans">
-        No remote participant. VAD &amp; turn-detection still emit on the local stream — the event panel reflects analysis of your own mic.
+        No remote participant. VAD and turn detection still run on your own stream, so the event panel shows events from your mic.
       </div>
     </div>
   );

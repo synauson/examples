@@ -10,7 +10,7 @@ export type SignalingHandlers = {
 /**
  * Thin wrapper around the browser WebSocket that types both directions
  * against the wire protocol. Exposes a single send() method that JSON-
- * serialises and a connect()-on-construction lifecycle with manual close().
+ * serializes and a connect()-on-construction lifecycle with manual close().
  *
  * No reconnect logic — for a 1:1 testbed, the user just refreshes the
  * page. The recreate-on-rejoin code on the server handles that scenario.

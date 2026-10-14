@@ -93,7 +93,7 @@ export function LobbyScreen({
               </div>
               <div style={{ textAlign: 'center' }}>
                 <div style={{ fontSize: 16, fontWeight: 600, letterSpacing: -0.2, color: '#e7e9ec' }}>{displayName || participantId}</div>
-                <div style={{ fontSize: 11, color: '#60656d', marginTop: 4 }} className="font-mono">say something — we'll show your levels</div>
+                <div style={{ fontSize: 11, color: '#60656d', marginTop: 4 }} className="font-mono">say something and we'll show your levels</div>
               </div>
             </div>
 

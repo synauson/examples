@@ -20,7 +20,7 @@ import java.util.concurrent.TimeUnit;
  * queues the event. An observer that falls 256 events behind is dropped
  * ({@code AGENT_SUBSCRIBER_LAGGED}); this one then subscribes again after the last event
  * it queued ({@link AgentStreamOptions#resumeAfter}), so nothing is lost or repeated. When
- * the engine no longer keeps the events after it, it starts afresh and skips the replayed
+ * the engine no longer keeps the events after it, it starts over and skips the replayed
  * events it already queued.
  */
 final class AgentStream implements EventStreamObserver<AgentEvent>, AutoCloseable {
@@ -56,7 +56,7 @@ final class AgentStream implements EventStreamObserver<AgentEvent>, AutoCloseabl
         return (AgentEvent) next;
     }
 
-    /** Subscribes again after the last stored event queued, or afresh if that is gone. */
+    /** Subscribes again after the last stored event queued, or from the start if that is gone. */
     void resume() {
         synchronized (subscriptionLock) {
             closeSubscription();

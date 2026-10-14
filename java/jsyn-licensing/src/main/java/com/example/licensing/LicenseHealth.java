@@ -14,11 +14,12 @@ import java.util.List;
  *
  * <ul>
  *   <li>{@code FAILING}: nothing new starts. The licensing server refused the license,
- *       or no usage report has got through for 7 days. Live calls carry on.
+ *       a developer key expired, or no usage report has gone through for 7 days. Live
+ *       calls carry on.
  *   <li>{@code DEGRADED}: still working, but the license needs attention: it expires
  *       soon, has expired (the Free plan), or a renewal was refused; usage reports
- *       aren't getting through; the license file expires soon; or every AI session is
- *       in use.
+ *       aren't getting through; the license file expires soon; or every AI session or
+ *       every conference is in use.
  *   <li>{@code OK}: everything else.
  * </ul>
  *
@@ -41,8 +42,14 @@ record LicenseHealth(Status status, List<String> reasons) {
                 return new LicenseHealth(Status.FAILING,
                         List.of(license.problem != null ? license.problem : license.description));
             }
-            case "expired" -> degraded.add("the license has expired; running on the Free plan: "
-                    + license.description);
+            case "expired" -> {
+                if ("developer".equals(license.plan)) {
+                    // A developer key starts nothing new once it expires (LICENSE_EXPIRED).
+                    return new LicenseHealth(Status.FAILING, List.of("the developer key has expired: "
+                            + license.description));
+                }
+                degraded.add("the license has expired; running on the Free plan: " + license.description);
+            }
             case "expiring", "offline", "invalid-kept-last-valid" ->
                     degraded.add(license.problem != null ? license.problem : license.description);
             default -> { }
@@ -65,7 +72,10 @@ record LicenseHealth(Status status, List<String> reasons) {
         }
 
         if ("full".equals(caps.sessions.level)) {
-            degraded.add("every AI session is in use (" + CapabilitiesPrinter.sessions(caps.sessions) + ")");
+            degraded.add("every AI session is in use (" + CapabilitiesPrinter.pool(caps.sessions) + ")");
+        }
+        if (caps.conferences != null && "full".equals(caps.conferences.level)) {
+            degraded.add("every conference is in use (" + CapabilitiesPrinter.pool(caps.conferences) + ")");
         }
         return new LicenseHealth(degraded.isEmpty() ? Status.OK : Status.DEGRADED, degraded);
     }

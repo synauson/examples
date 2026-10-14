@@ -16,7 +16,7 @@ import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * Test scaffolding, not part of an agent: a phone at the far end of a SIP call. jsyn's SIP
- * participant is only the call's media; your SIP stack does the signalling and the SDP,
+ * participant is only the call's media; your SIP stack does the signaling and the SDP,
  * and gives jsyn the phone's address, port and codec. This phone sends the caller's
  * rehearsed lines as PCMU over RTP, 20 ms a packet in real time, from a UDP socket, and
  * keeps the RTP it gets back, which is the agent's voice.

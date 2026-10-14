@@ -22,11 +22,11 @@ with a simulated caller.
   `JAVA_HOME`, else the `java` on `PATH`; this Gradle version doesn't run on JDK 25),
   and on Linux GStreamer 1.24 or 1.26, or on Windows the GStreamer 1.26.7 MSVC runtime
   and the Visual C++ Redistributable. jsyn's
-  [installation guide](https://github.com/synauson/jsyn/blob/v1.6.0/docs/install.md) has the steps.
+  [installation guide](https://github.com/synauson/jsyn/blob/v1.7.0/docs/install.md) has the steps.
 - HTTPS access to `usage.synauson.com`, `license.synauson.com`, `status.synauson.com`
   and Cloudflare R2 (`*.r2.cloudflarestorage.com`), where the models download from, and
-  a synchronised clock (NTP). jsyn's
-  [network and firewall](https://github.com/synauson/jsyn/blob/v1.6.0/docs/install.md#network-and-firewall) table says what each is for.
+  a synchronized clock (NTP). jsyn's
+  [network and firewall](https://github.com/synauson/jsyn/blob/v1.7.0/docs/install.md#network-and-firewall) table says what each is for.
 - About 2.5 GB of disk: about 1 GB of models, and about 1.2 GB of speech to text
   weights the engine prepares for your CPU. The first start downloads and prepares
   them, which takes a few minutes; the commands print each model's state while they
@@ -163,7 +163,7 @@ Eager end of turn on a participant with speech to text also needs
 
 With `agent` the caller is a native participant, so the demo needs no phone line or
 browser. With `agent --sip` it is a SIP participant, as for a phone call: your SIP stack
-handles the signalling and the SDP, and gives jsyn the phone's address, port and codec.
+handles the signaling and the SDP, and gives jsyn the phone's address, port and codec.
 `SipParticipantSpec` takes the same `vad`, `turnDetection`, `stt` and `tts` options.
 
 The agent reads the caller's agent event stream (`conf.streamAgentEvents`), one ordered
@@ -196,10 +196,13 @@ the person on the phone: [`Rehearsal`](src/main/java/com/example/voiceagent/Rehe
 makes their voice with a second speaker before the call, and it goes into the call 20 ms
 at a time, the way a call's audio arrives. None of these is part of an agent.
 
-jsyn's [voice agents guide](https://github.com/synauson/jsyn/blob/v1.6.0/docs/voice-agents.md),
-[text to speech guide](https://github.com/synauson/jsyn/blob/v1.6.0/docs/text-to-speech.md)
-and [SIP guide](https://github.com/synauson/jsyn/blob/v1.6.0/docs/sip.md) describe every
+jsyn's [voice agents guide](https://github.com/synauson/jsyn/blob/v1.7.0/docs/voice-agents.md),
+[text to speech guide](https://github.com/synauson/jsyn/blob/v1.7.0/docs/text-to-speech.md)
+and [SIP guide](https://github.com/synauson/jsyn/blob/v1.7.0/docs/sip.md) describe every
 event and option.
+
+The [gRPC voice agent](../../python/grpc-voice-agent) runs the same agent in Python
+against the Synauson server.
 
 ## Troubleshooting
 
@@ -209,8 +212,8 @@ event and option.
 | `InvalidArgumentException: no license key configured: set SYNAUSON_LICENSE_KEY …` | Set the variable in this shell, or pass it to the container (`just container` does). |
 | The commands wait several minutes at `waiting: …` | The first start downloads about 1 GB of models and prepares the speech to text weights. Later runs reuse them. |
 | `speech failed to load` or `speech not ready within …` | The models didn't download or load; the message gives the reason. Check access to Cloudflare R2 (`*.r2.cloudflarestorage.com`) and the free disk space. |
-| `(engine: STT_LAGGING: …)` during a call | Speech to text fell behind the caller, so turns can end before their last words. The machine is short of CPU for speech, often because something else is using it. See jsyn's [capacity guide](https://github.com/synauson/jsyn/blob/v1.6.0/docs/sizing.md). |
+| `(engine: STT_LAGGING: …)` during a call | Speech to text fell behind the caller, so turns can end before their last words. The machine is short of CPU for speech, often because something else is using it. See jsyn's [capacity guide](https://github.com/synauson/jsyn/blob/v1.7.0/docs/sizing.md). |
 | `no UtteranceStarted from the agent within 60 s` | The agent heard no turn from the caller. With `--sip`, check that nothing on this machine blocks UDP on the loopback address. |
 | `no such file: …` from `transcribe` | Give a path relative to this directory (`java/jsyn-voice-agent`) or a full path. In the container, the file must be under this directory. |
-| `Spoke … ms of audio; N ms waiting for synthesis` with N above 0 | The machine is short of CPU for speech, often because something else is using it. See jsyn's [capacity guide](https://github.com/synauson/jsyn/blob/v1.6.0/docs/sizing.md). |
-| Host runs fail with `UnsatisfiedLinkError` or a GStreamer error | See jsyn's [troubleshooting guide](https://github.com/synauson/jsyn/blob/v1.6.0/docs/troubleshooting.md), or run in the container. |
+| `Spoke … ms of audio; N ms waiting for synthesis` with N above 0 | The machine is short of CPU for speech, often because something else is using it. See jsyn's [capacity guide](https://github.com/synauson/jsyn/blob/v1.7.0/docs/sizing.md). |
+| Host runs fail with `UnsatisfiedLinkError` or a GStreamer error | See jsyn's [troubleshooting guide](https://github.com/synauson/jsyn/blob/v1.7.0/docs/troubleshooting.md), or run in the container. |

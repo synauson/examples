@@ -1,8 +1,8 @@
 # jsyn licensing
 
 How to set up Synauson licensing in a jsyn application, with a tour that checks each
-behaviour against a live runtime and prints what it found. jsyn's
-[licensing guide](https://github.com/synauson/jsyn/blob/v1.6.0/docs/licensing-and-models.md)
+behavior against a live runtime and prints what it found. jsyn's
+[licensing guide](https://github.com/synauson/jsyn/blob/v1.7.0/docs/licensing-and-models.md)
 explains how licensing works; this example shows it happening, and holds code you can
 copy.
 
@@ -13,10 +13,10 @@ The tour runs in chapters, each a small program against its own runtime:
 | Chapter | What it shows | Code to read |
 |---|---|---|
 | `startup` | Which keys stop a runtime from starting: none, malformed, unknown to the licensing server | [`StartupChapter`](src/main/java/com/example/licensing/StartupChapter.java) |
-| `online` | Checking out a license file through the usage service, the capabilities report, the share of the session pool, the cached file, model downloads, a restart on the cache | [`OnlineChapter`](src/main/java/com/example/licensing/OnlineChapter.java) |
-| `capabilities` | Every license has every AI feature, and how participants take AI sessions | [`CapabilitiesChapter`](src/main/java/com/example/licensing/CapabilitiesChapter.java) |
-| `air-gapped` | Running offline on a license file, a file used with the wrong key, and an offline start with no license file, which is refused | [`AirGappedChapter`](src/main/java/com/example/licensing/AirGappedChapter.java) |
-| `limits` | Refusals at the session limit, joining without AI, sessions freed, your own `maxConferences` | [`LimitsChapter`](src/main/java/com/example/licensing/LimitsChapter.java) |
+| `online` | Checking out a license file through the usage service, the capabilities report, the license's plan, its shares of the session and conference pools, the cached file, model downloads, a restart on the cache | [`OnlineChapter`](src/main/java/com/example/licensing/OnlineChapter.java) |
+| `capabilities` | Every license has every AI feature, how participants take AI sessions and conferences take conferences | [`CapabilitiesChapter`](src/main/java/com/example/licensing/CapabilitiesChapter.java) |
+| `air-gapped` | Running offline on a license file: refused without the usage receipt an earlier online run keeps in the state directory (an air-gapped license needs none), started with it; a file used with the wrong key, and an offline start with no license file, both refused | [`AirGappedChapter`](src/main/java/com/example/licensing/AirGappedChapter.java) |
+| `limits` | Refusals at the session limit, joining without AI, sessions freed, your own `maxConferences` told apart from the license's limits by `reason()` | [`LimitsChapter`](src/main/java/com/example/licensing/LimitsChapter.java) |
 
 Two pieces are written to be copied into your application:
 
@@ -29,19 +29,19 @@ Two pieces are written to be copied into your application:
 
 ## What you need
 
-- A Synauson license key in `SYNAUSON_LICENSE_KEY`. Any key works. With a Free key
-  (2 AI sessions) the `limits` chapter fills the pool and shows the refusal; with a
-  larger pool it skips that part. Every runtime on the key shares its pool, so run the
-  tour where nothing else uses the key.
+- A Synauson license key in `SYNAUSON_LICENSE_KEY`. Any key works. With a Free or
+  developer key (4 AI sessions, 10 conferences) the `limits` chapter fills the session
+  pool and shows the refusal; with a larger pool it skips that part. Every runtime on
+  the key shares its pools, so run the tour where nothing else uses the key.
 - HTTPS access to `usage.synauson.com`, `license.synauson.com`, `status.synauson.com`
   and Cloudflare R2 (`*.r2.cloudflarestorage.com`), where the models download from, and
-  a synchronised clock (NTP). jsyn's
-  [network and firewall](https://github.com/synauson/jsyn/blob/v1.6.0/docs/install.md#network-and-firewall) table says what each is for.
+  a synchronized clock (NTP). jsyn's
+  [network and firewall](https://github.com/synauson/jsyn/blob/v1.7.0/docs/install.md#network-and-firewall) table says what each is for.
 - In a container: Docker. On the host: a JDK 21, which Gradle also runs on (from
   `JAVA_HOME`, else the `java` on `PATH`; this Gradle version doesn't run on JDK 25),
   and on Linux GStreamer 1.24 or 1.26, or on Windows the GStreamer 1.26.7 MSVC runtime
   and the Visual C++ Redistributable. jsyn's
-  [installation guide](https://github.com/synauson/jsyn/blob/v1.6.0/docs/install.md) has the steps.
+  [installation guide](https://github.com/synauson/jsyn/blob/v1.7.0/docs/install.md) has the steps.
 
 ## Run it
 
@@ -74,25 +74,27 @@ this:
 ```text
 ━━━ 2 · Online ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 At startup the runtime reports to usage.synauson.com, which checks out a license file
-from license.synauson.com for it: a file signed by Synauson that names how many AI
-sessions the license may run at once. The runtime caches the file in the state directory
-and renews it about once a day. Every 30 seconds it reports its session counts and gets
-back its share of the license's pool, which every runtime on the license shares.
-JSyn.capabilities() reports what the runtime knows about its license.
+from license.synauson.com for it: a file signed by Synauson that names its plan and how
+many AI sessions and conferences the license may run at once. The runtime caches the file
+in the state directory and renews it about once a day. Every 30 seconds it reports its AI
+session and conference counts and gets back its share of each of the license's two pools,
+which every runtime on the license shares. JSyn.capabilities() reports what the runtime
+knows about its license.
 
 ▸ Start with your key and an empty state directory
-    license                    valid · license '…' (…), perpetual (every AI feature, Free plan, 2 concurrent AI sessions; file from server, works until …)
+    license                    valid · license '…' (…), perpetual (every AI feature, Free plan, 4 concurrent AI sessions and 10 concurrent conferences; file from server, works until …)
     license id                 …
-    plan                       all
+    plan                       free
     file from                  server
     file expires               … (renewed about daily; without contact new calls stop sooner, below)
     license expires            never
-    AI sessions                0 in use of 2, ok · counted on all instances of this license, no burst
-    usage service              leased · a share of 2 session(s) · 1 instance(s), 0 session(s) in use
+    AI sessions                0 in use of 4, ok · counted on all instances of this license, no burst
+    conferences                0 in use of 10, ok
+    usage service              leased · a share of 4 session(s) and a share of 10 conference(s) · 1 instance(s), 0 session(s) and 0 conference(s) in use
     new calls stop at          … without a report getting through
     …
-  ✓ valid, from a file just checked out through the usage service, with every AI feature
-    and AI sessions 0 in use of 2, ok
+  ✓ valid, from a file just checked out through the usage service, on the free plan with
+    every AI feature, AI sessions 0 in use of 4, ok and conferences 0 in use of 10, ok
 ```
 
 The tour ends with:
@@ -117,10 +119,10 @@ non-zero status. The engine's own warnings and errors also appear in the output.
 | What you see | Cause and fix |
 |---|---|
 | `Set SYNAUSON_LICENSE_KEY to your Synauson license key` | The variable isn't set in this shell or wasn't passed to the container (`-e SYNAUSON_LICENSE_KEY`). |
-| `PermissionDeniedException` in the `startup` or `air-gapped` chapter, followed by a `✓` line | Expected: those steps use a made-up key, or no license file, on purpose, and the `✓` line confirms the refusal. |
+| `PermissionDeniedException` in the `startup` or `air-gapped` chapter, followed by a `✓` line | Expected: those steps use a made-up key, no usage receipt or no license file on purpose, and the `✓` line confirms the refusal. |
 | The `online` chapter fails with `PermissionDeniedException` | Your key is unknown to the licensing server, suspended or banned, or this machine can't reach `usage.synauson.com` (the message says which). |
 | `usage.synauson.com leased no share` | Reports aren't getting through: check HTTPS access to `usage.synauson.com`. |
-| The `capabilities` chapter skips the second participant, or `limits` refuses earlier than the license's limit | Another runtime on the same key holds part of the pool. Run the tour where nothing else uses the key. |
+| The `capabilities` chapter skips the second participant, or `limits` refuses earlier than the license's limit | Another runtime on the same key holds part of a pool. Run the tour where nothing else uses the key. |
 | A chapter waits a long time for models | The first run downloads every model, about 1 GB. Later runs reuse the `jsyn-licensing-tour` volume or `build/licensing-tour/`. |
 | `Unknown chapter '…'` | Use `startup`, `online`, `capabilities`, `air-gapped` or `limits`. |
-| Host runs fail with `UnsatisfiedLinkError` or a GStreamer error | See jsyn's [troubleshooting guide](https://github.com/synauson/jsyn/blob/v1.6.0/docs/troubleshooting.md), or run in the container. |
+| Host runs fail with `UnsatisfiedLinkError` or a GStreamer error | See jsyn's [troubleshooting guide](https://github.com/synauson/jsyn/blob/v1.7.0/docs/troubleshooting.md), or run in the container. |

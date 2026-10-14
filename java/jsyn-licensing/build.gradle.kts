@@ -23,8 +23,8 @@ repositories {
 
 // jsyn and its natives are versioned separately: an engine-only fix is a
 // natives release with no new jsyn.
-val jsynVersion = "1.6.0"
-val jsynNativesVersion = "1.7.1"
+val jsynVersion = "1.7.0"
+val jsynNativesVersion = "1.8.0"
 val nativesArtifact =
     if (System.getProperty("os.name").lowercase().contains("windows")) "jsyn-natives-windows"
     else "jsyn-natives-linux"

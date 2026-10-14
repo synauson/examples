@@ -26,8 +26,8 @@ repositories {
 // engine-only fix is a natives release with no new jsyn. publish-webrtc-testbed.yml
 // greps the natives variable below by name, so keep its name and don't mention it
 // above its line.
-val jsynVersion = "1.6.0"
-val jsynNativesLinuxVersion = "1.7.1"
+val jsynVersion = "1.7.0"
+val jsynNativesLinuxVersion = "1.8.0"
 
 dependencies {
     implementation("org.springframework.boot:spring-boot-starter-web")

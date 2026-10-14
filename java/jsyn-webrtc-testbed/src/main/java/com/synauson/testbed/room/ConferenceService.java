@@ -38,7 +38,7 @@ import java.util.concurrent.locks.ReentrantLock;
  * <h2>Concurrency model</h2>
  *
  * <p>{@code ConcurrentHashMap} stores the sessions and supports lock-free
- * reads for hot paths (event fan-out). The {@link #lock} serialises every
+ * reads for hot paths (event fan-out). The {@link #lock} serializes every
  * sequence that touches more than one piece of state — adding a participant,
  * removing one, recreating on rejoin, rewiring the routing matrix. The lock
  * is <strong>never held across WebSocket sends on the success path</strong>:

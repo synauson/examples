@@ -1,0 +1,33 @@
+# gRPC voice agent example. Run `just` (or `just --list`) to see all recipes.
+#
+# Needs SYNAUSON_LICENSE_KEY in the environment.
+# On the host: uv (it installs Python 3.13). In containers: Docker only.
+
+# Server 1.8.0 or newer: older servers don't serve the API this agent speaks.
+server_image := "cr.synauson.com/synauson/synauson-server:1.8.0"
+
+set positional-arguments
+
+# List all available recipes
+default:
+    @just --list
+
+# The server and the agent in containers; CALLER=file for the file caller
+compose:
+    docker compose up --build --exit-code-from agent
+
+# The server alone, in a container, on this host's network (Linux)
+server:
+    docker run --rm --network host -e SYNAUSON_LICENSE_KEY \
+      -v synauson-models:/var/lib/synauson/models -v synauson-state:/var/lib/synauson/state \
+      -v "$PWD/caller:/caller:ro" {{server_image}} --listen 127.0.0.1:50051 --stt-eager true
+
+# The agent on the host, against a server on localhost:50051 (start `just server` first)
+agent *args:
+    uv run grpc-voice-agent "$@"
+
+# Delete the containers, the server's volumes and call.wav
+clean:
+    docker compose down --volumes --rmi local
+    docker volume rm -f synauson-models synauson-state
+    rm -f call.wav

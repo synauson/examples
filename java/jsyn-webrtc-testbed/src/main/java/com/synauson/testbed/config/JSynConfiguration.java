@@ -16,15 +16,15 @@ import org.springframework.context.annotation.Configuration;
  *
  * <p>JSyn (the runtime) and Conference (the audio session) have <em>distinct</em>
  * lifecycles. JSyn loads GStreamer + ONNX Runtime — process-global libraries that
- * must be initialised exactly once per JVM. Conference is a tenant of that
+ * must be initialized exactly once per JVM. Conference is a tenant of that
  * runtime; tearing it down is fast, tearing JSyn down is slow because it stops
- * the GStreamer thread pool. Modelling them as two beans gives Spring's shutdown
+ * the GStreamer thread pool. Modeling them as two beans gives Spring's shutdown
  * machinery the dependency information it needs to close them in the correct
  * order (Conference first, then JSyn).
  *
  * <h2>Why both beans use {@code destroyMethod = "close"}</h2>
  *
- * <p>Both classes implement {@link AutoCloseable}. Spring honours
+ * <p>Both classes implement {@link AutoCloseable}. Spring honors
  * {@code destroyMethod = "close"} as part of context shutdown, so a JVM exit
  * triggered by SIGTERM (the only signal Docker ever sends a stopping container)
  * propagates cleanly through the shutdown hook → Spring context close → bean
@@ -48,7 +48,7 @@ public class JSynConfiguration {
      *
      * <p>Constructing the bean loads the native libraries via
      * {@link com.synauson.jsyn.internal.NativeLoader#load()}, runs a GStreamer
-     * sanity check, and initialises ONNX Runtime. The libraries stay loaded for
+     * sanity check, and initializes ONNX Runtime. The libraries stay loaded for
      * the JVM's lifetime; {@link JSyn#close()} (which Spring invokes at shutdown
      * thanks to {@code destroyMethod = "close"}) shuts the runtime down, and a
      * later {@link JSyn} reuses the loaded libraries. Keep at most one active
@@ -66,7 +66,7 @@ public class JSynConfiguration {
      */
     @Bean(destroyMethod = "close")
     public JSyn jsyn(TestbedProperties props) {
-        log.info("Initialising JSyn runtime with model store {}", props.modelStore());
+        log.info("Initializing JSyn runtime with model store {}", props.modelStore());
         JSynConfig cfg = JSynConfig.builder()
                 // Null reads SYNAUSON_LICENSE_KEY from the environment.
                 .licenseKey(blankToNull(props.licenseKey()))

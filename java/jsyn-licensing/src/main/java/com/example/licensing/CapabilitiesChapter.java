@@ -20,7 +20,8 @@ import static com.example.licensing.Tour.step;
 
 /**
  * Chapter 3: capabilities and sessions. Every license has every AI feature; each
- * participant using any of them takes one AI session from the license's pool.
+ * participant using any of them takes one AI session from the license's session pool,
+ * and each conference one conference from its conference pool.
  */
 final class CapabilitiesChapter {
 
@@ -52,9 +53,11 @@ final class CapabilitiesChapter {
         Tour.chapter("3 · Capabilities and sessions",
                 "The AI features are capabilities: FEATURE_VAD, FEATURE_TURN_DETECTION, FEATURE_STT "
                 + "and FEATURE_TTS. Every license has all of them, and conferencing without AI. "
-                + "Licenses differ only in how many AI sessions they run at once: the Free base of "
-                + "2 that every license has, plus the sessions it buys. Each participant using any "
-                + "capability takes one AI session from the license's pool, whatever it uses.");
+                + "Licenses differ only in how many AI sessions and conferences they run at once: "
+                + "the Free base of 4 sessions and 10 conferences that every license has, plus what "
+                + "it buys. Each participant using any capability takes one AI session from the "
+                + "license's session pool, whatever it uses, and every conference takes one "
+                + "conference from its conference pool, with AI or without.");
 
         if (!Files.isRegularFile(tour.dir("state/online").resolve(OnlineChapter.CACHE_FILE))) {
             throw new Tour.TourFailure("run the online chapter first: this one reuses its license and models");
@@ -68,24 +71,28 @@ final class CapabilitiesChapter {
                 for (Capabilities.CapabilityInfo c : caps.capabilities) {
                     expect(c.entitled, "every license includes " + c.code);
                 }
-                ok("every capability is entitled; AI sessions " + CapabilitiesPrinter.sessions(caps.sessions)
+                ok("every capability is entitled; AI sessions " + CapabilitiesPrinter.pool(caps.sessions)
                         + " (base " + caps.sessions.base + ", purchased "
                         + (caps.sessions.purchased == null ? "unlimited" : caps.sessions.purchased) + ")");
                 Conference conference = jsyn.startConference("capabilities");
                 open.push(conference);
+                caps = jsyn.capabilities();
+                expect(caps.conferences.inUse == 1, "a conference takes one of the license's conferences");
+                ok("the conference takes one conference: conferences "
+                        + CapabilitiesPrinter.pool(caps.conferences));
 
                 step("A participant without AI");
                 open.push(conference.addNativeParticipant("plain", plain()));
                 caps = jsyn.capabilities();
                 expect(caps.sessions.inUse == 0, "a participant without AI takes no session");
-                ok("joined; AI sessions " + CapabilitiesPrinter.sessions(caps.sessions)
-                        + ". Conferences and participants without AI take no session.");
+                ok("joined; AI sessions " + CapabilitiesPrinter.pool(caps.sessions)
+                        + ". Conferences and participants without AI take no AI session.");
 
                 step("Turn detection (VAD and the turn detector on one participant)");
                 open.push(conference.addNativeParticipant("turn", withTurnDetection()));
                 caps = jsyn.capabilities();
                 expect(caps.sessions.inUse == 1, "a participant with two detectors takes one session");
-                ok("AI sessions " + CapabilitiesPrinter.sessions(caps.sessions)
+                ok("AI sessions " + CapabilitiesPrinter.pool(caps.sessions)
                         + ": one session, however many detectors the participant has");
 
                 step("VAD on its own, in the same conference");
@@ -95,7 +102,7 @@ final class CapabilitiesChapter {
                     open.push(conference.addNativeParticipant("vad", withVad()));
                     caps = jsyn.capabilities();
                     expect(caps.sessions.inUse == 2, "a second AI participant takes a second session");
-                    ok("AI sessions " + CapabilitiesPrinter.sessions(caps.sessions)
+                    ok("AI sessions " + CapabilitiesPrinter.pool(caps.sessions)
                             + ": sessions count participants, not conferences");
                 } else {
                     note("skipped: this runtime's share of the pool is " + room + " session"
@@ -114,9 +121,9 @@ final class CapabilitiesChapter {
                 expect(caps.sessions.inUse == 0, "removing the AI participants releases their sessions");
                 expect(caps.sessions.peak >= (second ? 2 : 1), "the report keeps the peak");
                 ok("their sessions are released at once: AI sessions "
-                        + CapabilitiesPrinter.sessions(caps.sessions) + ", peak " + caps.sessions.peak
+                        + CapabilitiesPrinter.pool(caps.sessions) + ", peak " + caps.sessions.peak
                         + ". The conference keeps running with 'plain'.");
-                note("A change to your license's sessions reaches running runtimes at their next "
+                note("A change to your license's sessions or conferences reaches running runtimes at their next "
                         + "renewal, within about a day, and applies to participants added after it.");
             } finally {
                 Tour.closeAll(open);

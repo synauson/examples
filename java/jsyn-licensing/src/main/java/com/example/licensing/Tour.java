@@ -21,9 +21,10 @@ import java.util.stream.Stream;
  *
  * <p>Every runtime in the tour uses one model store, so the models downloaded in the
  * online chapter serve the offline ones. A state directory holds the cached license
- * file and the last contact with the usage service; the chapters that start online
- * reuse the online chapter's, and the others start from empty ones, so a cache never
- * leaks into a result by accident.
+ * file and the usage receipt, the last contact with the usage service; the chapters
+ * that start online reuse the online chapter's, and the others start from empty ones,
+ * so a cache never leaks into a result by accident. The air-gapped chapter copies the
+ * online chapter's receipt into one of them on purpose.
  */
 final class Tour {
 

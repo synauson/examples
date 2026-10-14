@@ -65,7 +65,7 @@ public class RosterBroadcaster {
         try {
             frame = new TextMessage(mapper.writeValueAsString(snapshot));
         } catch (Exception ex) {
-            log.error("Failed to serialise roster snapshot", ex);
+            log.error("Failed to serialize roster snapshot", ex);
             return;
         }
         for (ParticipantSession s : sessions.values()) {

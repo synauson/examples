@@ -16,7 +16,7 @@ import org.springframework.web.socket.handler.TextWebSocketHandler;
  * Per-frame dispatcher between the browser and {@link ConferenceService}.
  *
  * <p>Spring's WebSocket layer invokes each method on a single thread per session,
- * so we don't need synchronisation here — but we do need to be careful that
+ * so we don't need synchronization here — but we do need to be careful that
  * {@link #handleTextMessage} stays fast (the dispatch into ConferenceService
  * happens on this thread and acquires a service-wide lock).
  *

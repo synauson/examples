@@ -14,7 +14,10 @@ import java.util.regex.Pattern;
  * on the session's attribute map under {@link #PARTICIPANT_ID_ATTR}.
  *
  * <p>URL scheme: {@code /ws/room/<participantId>}. The ID is URL-decoded once
- * here; downstream handlers should not decode it again.
+ * here; downstream handlers should not decode it again. jsyn accepts ids of 1 to 128
+ * characters from {@code A-Z}, {@code a-z}, {@code 0-9}, {@code .}, {@code _} and
+ * {@code -} and throws {@code InvalidArgumentException} for any other, so the
+ * handshake refuses other ids before they reach jsyn.
  */
 public class PathParticipantIdInterceptor implements HandshakeInterceptor {
 
@@ -23,6 +26,9 @@ public class PathParticipantIdInterceptor implements HandshakeInterceptor {
     private static final Pattern PATH_PATTERN =
         Pattern.compile("^/ws/room/([^/]+)/?$");
 
+    /** The ids jsyn accepts for conferences and participants. */
+    public static final Pattern VALID_ID = Pattern.compile("^[A-Za-z0-9._-]{1,128}$");
+
     @Override
     public boolean beforeHandshake(ServerHttpRequest request, ServerHttpResponse response,
                                     WebSocketHandler wsHandler, Map<String, Object> attributes) {
@@ -30,7 +36,7 @@ public class PathParticipantIdInterceptor implements HandshakeInterceptor {
         Matcher m = PATH_PATTERN.matcher(path);
         if (!m.matches()) return false;        // Spring will 404 the handshake
         String pid = java.net.URLDecoder.decode(m.group(1), java.nio.charset.StandardCharsets.UTF_8);
-        if (pid.isBlank()) return false;
+        if (!VALID_ID.matcher(pid).matches()) return false;
         attributes.put(PARTICIPANT_ID_ATTR, pid);
         return true;
     }

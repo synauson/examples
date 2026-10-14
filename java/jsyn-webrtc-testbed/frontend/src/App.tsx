@@ -24,6 +24,16 @@ export default function App() {
     );
   }
 
+  // The ids jsyn accepts; the server refuses the others at the WebSocket handshake.
+  if (!/^[A-Za-z0-9._-]{1,128}$/.test(participantId)) {
+    return (
+      <main className="min-h-screen flex items-center justify-center text-ink-3 font-mono text-sm">
+        use 1 to 128 letters, digits, &apos;.&apos;, &apos;_&apos; or &apos;-&apos; in
+        <span className="text-ink-1 px-1">/room/&lt;your-id&gt;</span>
+      </main>
+    );
+  }
+
   return <Room participantId={participantId} />;
 }
 

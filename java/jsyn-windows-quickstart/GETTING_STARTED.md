@@ -108,7 +108,7 @@ WebRTC.
    GStreamer's first start for an account scans every installed plugin, which can take
    tens of seconds. Doing it now keeps that wait out of the first program you run.
 
-jsyn's [installation guide](https://github.com/synauson/jsyn/blob/v1.6.0/docs/install.md#windows)
+jsyn's [installation guide](https://github.com/synauson/jsyn/blob/v1.7.0/docs/install.md#windows)
 has the same steps with more detail, a check for every element jsyn needs, and the
 firewall rules a server needs.
 
@@ -266,13 +266,13 @@ JSyn shutdown complete
 
 Gradle can't download jsyn. Check that `build.gradle.kts` lists
 `https://maven.synauson.com/releases` under `repositories` (it needs no credentials),
-that the machine can reach it:
+and that the machine can reach it:
 
 ```powershell
 curl.exe -sI https://maven.synauson.com/releases/com/synauson/jsyn/maven-metadata.xml
 ```
 
-and then retry with `.\gradlew.bat build --refresh-dependencies`.
+Then retry with `.\gradlew.bat build --refresh-dependencies`.
 
 ### `No matching toolchains found for requested specification: {languageVersion=11, ...}`
 

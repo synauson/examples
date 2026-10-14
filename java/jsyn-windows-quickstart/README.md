@@ -30,8 +30,8 @@ programs running.
 - A Synauson license key in `SYNAUSON_LICENSE_KEY`. Any key runs all three programs.
 - HTTPS access to `usage.synauson.com`, `license.synauson.com`, `status.synauson.com`
   and Cloudflare R2 (`*.r2.cloudflarestorage.com`), where the models download from, and
-  a synchronised clock (NTP). jsyn's
-  [network and firewall](https://github.com/synauson/jsyn/blob/v1.6.0/docs/install.md#network-and-firewall) table says what each is for.
+  a synchronized clock (NTP). jsyn's
+  [network and firewall](https://github.com/synauson/jsyn/blob/v1.7.0/docs/install.md#network-and-firewall) table says what each is for.
 - For `runVadExample`, a WAV recording of speech: 16 kHz, mono, 16-bit PCM. VAD is
   trained on speech and doesn't react to a test tone.
 
@@ -82,9 +82,9 @@ repositories {
 }
 
 dependencies {
-    implementation("com.synauson:jsyn:1.6.0")
+    implementation("com.synauson:jsyn:1.7.0")
     // the engine and ONNX Runtime; GStreamer and the Visual C++ runtime are installed separately
-    runtimeOnly("com.synauson:jsyn-natives-windows:1.7.1")
+    runtimeOnly("com.synauson:jsyn-natives-windows:1.8.0")
 }
 ```
 
@@ -98,7 +98,7 @@ The programs take no settings beyond `SYNAUSON_LICENSE_KEY` and the WAV path for
 `runVadExample`. They keep jsyn's defaults, among them the model store
 `%LOCALAPPDATA%\synauson\models` and the license cache in
 `%LOCALAPPDATA%\synauson\state`. To change those, or anything else, see jsyn's
-[configuration guide](https://github.com/synauson/jsyn/blob/v1.6.0/docs/configuration.md).
+[configuration guide](https://github.com/synauson/jsyn/blob/v1.7.0/docs/configuration.md).
 
 ## Troubleshooting
 

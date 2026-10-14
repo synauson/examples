@@ -1,0 +1,50 @@
+[project]
+name = "grpc-voice-agent"
+version = "1.0.0"
+description = "A voice agent over the Synauson server's gRPC API"
+requires-python = ">=3.11"
+license = "Apache-2.0"
+# Ranges, not pins: uv.lock pins the versions this example was tested with.
+# synauson-api is the server's gRPC API (synauson.v1, server 1.8.0 or newer); its
+# `status` extra adds grpcio-status and googleapis-common-protos, which read the
+# ErrorInfo on a failed call.
+dependencies = ["synauson-api[status]>=1.0.1,<2"]
+
+[project.scripts]
+grpc-voice-agent = "grpc_voice_agent.__main__:main"
+
+[dependency-groups]
+dev = [
+    "mypy==2.4.0",
+    "pytest==9.1.1",
+    "ruff==0.16.10",
+    "types-grpcio==1.84.0.20260928",
+    "types-grpcio-status==1.0.0.20260408",
+    "types-protobuf==7.35.1.20260906",
+]
+
+[build-system]
+requires = ["hatchling==1.32.4"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/grpc_voice_agent"]
+
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "ASYNC", "RUF"]
+
+[tool.ruff.lint.isort]
+known-third-party = ["synauson"]
+
+[tool.mypy]
+strict = true
+files = ["src/grpc_voice_agent", "tests"]
+
+[[tool.mypy.overrides]]
+# googleapis-common-protos ships .pyi stubs for google.rpc but no py.typed marker, so
+# mypy would skip them; this reads them. Nothing here is silenced.
+module = ["google.rpc.*"]
+follow_untyped_imports = true

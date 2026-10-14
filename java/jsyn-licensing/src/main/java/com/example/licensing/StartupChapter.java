@@ -49,16 +49,20 @@ final class StartupChapter {
         step("A key license.synauson.com doesn't know");
         Tour.Start unknown = Tour.tryStart(tour.config(state).licenseKey(UNKNOWN_KEY).build());
         expect(unknown.error() instanceof PermissionDeniedException
-                        && unknown.error().getMessage().contains("refused"),
-                "the licensing server refuses a key it doesn't know (PermissionDeniedException)");
+                        && unknown.error().getMessage().startsWith("LICENSE_REJECTED:"),
+                "the licensing server refuses a key it doesn't know (PermissionDeniedException, "
+                + "LICENSE_REJECTED)");
         refused(unknown.error());
         ok("refused: the licensing server doesn't know this key");
-        note("The runtime acts only on answers signed by the licensing server, which it checks "
+        note("Every exception's message starts with a reason code, such as LICENSE_REJECTED: "
+                + "match the code, not the text after it. The runtime acts only on answers signed "
+                + "by the licensing server, which it checks "
                 + "with a key built into jsyn. SUSPENDED and BANNED keys fail the same way. If the "
                 + "server can't be reached, a runtime starts only on a license file of its own that "
                 + "still works (chapter 2 shows the cached one, chapter 4 one you provide). An "
-                + "expired license still starts, on the Free plan: every AI feature with 2 AI "
-                + "sessions. A license file this engine can't accept fails with "
+                + "expired license still starts, on the Free plan: every AI feature with 4 AI "
+                + "sessions and 10 conferences. An expired developer key starts too, but runs nothing "
+                + "new until Synauson renews it. A license file this engine can't accept fails with "
                 + "FailedPreconditionException starting ILLEGAL_LICENSE.");
     }
 }

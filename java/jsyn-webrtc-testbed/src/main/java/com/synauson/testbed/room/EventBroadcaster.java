@@ -124,7 +124,7 @@ public class EventBroadcaster {
         try {
             frame = new TextMessage(mapper.writeValueAsString(msg));
         } catch (Exception ex) {
-            log.error("Failed to serialise event", ex);
+            log.error("Failed to serialize event", ex);
             return;
         }
         for (ParticipantSession s : sessions.values()) {
@@ -136,7 +136,7 @@ public class EventBroadcaster {
         try {
             sendQuietly(session, new TextMessage(mapper.writeValueAsString(msg)));
         } catch (Exception ex) {
-            log.error("Failed to serialise per-pid event", ex);
+            log.error("Failed to serialize per-pid event", ex);
         }
     }
 
